@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../models/investment.dart';
+import '../../services/worker_service.dart';
 
-class WorkerListScreen extends StatelessWidget {
+class WorkerListScreen extends StatefulWidget {
   final Investment investment;
   final Color accent;
   final Color primaryText;
@@ -10,6 +11,9 @@ class WorkerListScreen extends StatelessWidget {
   final Color cardGradientStart;
   final Color cardGradientEnd;
   final Color cardBorder;
+
+  /// Callback to refresh parent screen when payment changes
+  final VoidCallback? onPaymentUpdated;
 
   const WorkerListScreen({
     Key? key,
@@ -21,22 +25,67 @@ class WorkerListScreen extends StatelessWidget {
     required this.cardGradientStart,
     required this.cardGradientEnd,
     required this.cardBorder,
+    this.onPaymentUpdated,
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    final workers = investment.workers ?? [];
+  State<WorkerListScreen> createState() => _WorkerListScreenState();
+}
 
+class _WorkerListScreenState extends State<WorkerListScreen> {
+  late List<Worker> workers;
+
+  @override
+  void initState() {
+    super.initState();
+    workers = widget.investment.workers ?? [];
+  }
+
+  void _togglePaymentStatus(Worker worker) async {
+    final newStatus = !worker.paymentDone;
+    try {
+      final updatedWorker = await WorkerService().updateWorkerPayment(worker.id, newStatus);
+
+      setState(() {
+        final index = workers.indexWhere((w) => w.id == worker.id);
+        if (index != -1 && updatedWorker != null) workers[index] = updatedWorker;
+      });
+
+      // Notify parent screen to refresh investment data
+      if (widget.onPaymentUpdated != null) widget.onPaymentUpdated!();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newStatus
+                ? "Payment ₹${worker.wage.toStringAsFixed(0)} done to ${worker.name}"
+                : "Payment marked as unpaid for ${worker.name}",
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to update payment for ${worker.name}"),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: widget.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: primaryText),
+        iconTheme: IconThemeData(color: widget.primaryText),
         title: Text(
-          "Workers - ${investment.description}",
+          "Workers - ${widget.investment.description}",
           style: TextStyle(
-            color: primaryText,
+            color: widget.primaryText,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -46,7 +95,7 @@ class WorkerListScreen extends StatelessWidget {
           ? Center(
         child: Text(
           "No workers assigned",
-          style: TextStyle(color: secondaryText, fontSize: 16),
+          style: TextStyle(color: widget.secondaryText, fontSize: 16),
         ),
       )
           : ListView.builder(
@@ -61,13 +110,13 @@ class WorkerListScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               gradient: LinearGradient(
                 colors: [
-                  cardGradientStart.withOpacity(0.25),
-                  cardGradientEnd.withOpacity(0.2),
+                  widget.cardGradientStart.withOpacity(0.25),
+                  widget.cardGradientEnd.withOpacity(0.2),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
-              border: Border.all(color: cardBorder.withOpacity(0.6)),
+              border: Border.all(color: widget.cardBorder.withOpacity(0.6)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -81,7 +130,7 @@ class WorkerListScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: primaryText,
+                        color: widget.primaryText,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -89,19 +138,49 @@ class WorkerListScreen extends StatelessWidget {
                       worker.role,
                       style: TextStyle(
                         fontSize: 14,
-                        color: secondaryText,
+                        color: widget.secondaryText,
                       ),
                     ),
                   ],
                 ),
-                // Wage
-                Text(
-                  "₹${worker.wage.toStringAsFixed(2)}",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: accent,
-                  ),
+                // Payment status button & wage
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      "₹${worker.wage.toStringAsFixed(0)}",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: widget.accent,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      onTap: () => _togglePaymentStatus(worker),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: worker.paymentDone ? Colors.green : Colors.red,
+                          borderRadius: BorderRadius.circular(6),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 3,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          worker.paymentDone ? "Paid" : "Pay Now",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

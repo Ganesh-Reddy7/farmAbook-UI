@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../models/investment.dart';
-import '../../services/investment_service.dart';
-import 'add_entities/add_investment_screen.dart' hide Worker;
-import 'worker_list_screen.dart';
+import '../../../models/crop.dart';
+import '../../services/crop_service.dart';
+import 'add_entities/add_crop_screen.dart';
+import 'crop_details_screen.dart';
 
-class InvestmentsScreen extends StatefulWidget {
+class CropsScreen extends StatefulWidget {
   final Color accent;
   final Color primaryText;
   final Color secondaryText;
@@ -14,7 +14,7 @@ class InvestmentsScreen extends StatefulWidget {
   final Color cardGradientEnd;
   final Color cardBorder;
 
-  const InvestmentsScreen({
+  const CropsScreen({
     required this.accent,
     required this.primaryText,
     required this.secondaryText,
@@ -26,54 +26,55 @@ class InvestmentsScreen extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _InvestmentsScreenState createState() => _InvestmentsScreenState();
+  _CropsScreenState createState() => _CropsScreenState();
 }
 
-class _InvestmentsScreenState extends State<InvestmentsScreen> {
+class _CropsScreenState extends State<CropsScreen> {
   int _selectedYear = DateTime.now().year;
   bool _isLineChart = false;
 
-  Map<int, List<Investment>> investmentsByYear = {};
-  Map<int, double> yearlyInvestments = {};
+  Map<int, List<Crop>> cropsByYear = {};
+  Map<int, double> yearlyCropsValue = {};
 
   @override
   void initState() {
     super.initState();
     _fetchYearlySummary();
-    _fetchInvestmentsForYear(_selectedYear, true);
+    _fetchCropsForYear(_selectedYear);
   }
 
   Future<void> _fetchYearlySummary() async {
-    final fetched = await InvestmentService().getYearlySummaryForFarmer(
+    final fetched = await CropService().getYearlySummary(
       startYear: DateTime.now().year - 4,
       endYear: DateTime.now().year + 1,
     );
+
     setState(() {
-      yearlyInvestments = {for (var e in fetched) e.year: e.totalAmount};
+      yearlyCropsValue = {for (var e in fetched) e['year'] as int : (e['totalValue'] as num).toDouble()};
     });
   }
 
-  Future<void> _fetchInvestmentsForYear(int year, bool includeWorkers) async {
-    final fetched = await InvestmentService().getInvestmentsByFinancialYear(
-        year: year, includeWorkers: includeWorkers);
+  Future<void> _fetchCropsForYear(int year) async {
+    final fetched = await CropService().getCropsByYear(year);
     setState(() {
-      investmentsByYear[year] = fetched;
+      cropsByYear[year] = fetched;
     });
   }
 
-  // Called after worker payment update or pull-to-refresh
-  Future<void> _refreshCurrentYearInvestments() async {
-    await _fetchInvestmentsForYear(_selectedYear, true);
+  Future<void> _refreshCurrentYearCrops() async {
+    await _fetchCropsForYear(_selectedYear);
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentYearInvestments = investmentsByYear[_selectedYear] ?? [];
-    final totalInvestment =
-    currentYearInvestments.fold<double>(0.0, (sum, inv) => sum + inv.amount);
+    final currentYearCrops = cropsByYear[_selectedYear] ?? [];
+    final totalValue = currentYearCrops.fold<double>(
+      0.0,
+          (sum, c) => sum + (c.value ?? 0.0),
+    );
     final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
-    double maxY = yearlyInvestments.values.isNotEmpty
-        ? yearlyInvestments.values.reduce((a, b) => a > b ? a : b) * 1.2
+    double maxY = yearlyCropsValue.values.isNotEmpty
+        ? yearlyCropsValue.values.reduce((a, b) => a > b ? a : b) * 1.2
         : 10000;
 
     return Scaffold(
@@ -82,7 +83,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: Text("Investments",
+        title: Text("Crops",
             style: TextStyle(
                 color: widget.primaryText,
                 fontWeight: FontWeight.bold,
@@ -96,7 +97,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshCurrentYearInvestments,
+        onRefresh: _refreshCurrentYearCrops,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),
@@ -105,8 +106,8 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               SizedBox(
                 height: 250,
                 child: _isLineChart
-                    ? _buildLineChart(yearlyInvestments, maxY, lastFiveYears)
-                    : _buildBarChart(yearlyInvestments, maxY, lastFiveYears),
+                    ? _buildLineChart(yearlyCropsValue, maxY, lastFiveYears)
+                    : _buildBarChart(yearlyCropsValue, maxY, lastFiveYears),
               ),
               const SizedBox(height: 20),
               Row(
@@ -130,15 +131,14 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                     onChanged: (year) {
                       if (year != null) {
                         setState(() => _selectedYear = year);
-                        _fetchInvestmentsForYear(year, true);
+                        _fetchCropsForYear(year);
                       }
                     },
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                  "Investments in $_selectedYear : ₹${totalInvestment.toStringAsFixed(0)}",
+              Text("Crops in $_selectedYear : ₹${totalValue.toStringAsFixed(0)}",
                   style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -147,29 +147,27 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               ListView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
-                itemCount: currentYearInvestments.length,
+                itemCount: currentYearCrops.length,
                 itemBuilder: (context, index) {
-                  final inv = currentYearInvestments[index];
+                  final crop = currentYearCrops[index];
                   return GestureDetector(
                     onTap: () {
-                      if (inv.workers != null && inv.workers!.isNotEmpty) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => WorkerListScreen(
-                              investment: inv,
-                              accent: widget.accent,
-                              primaryText: widget.primaryText,
-                              secondaryText: widget.secondaryText,
-                              scaffoldBg: widget.scaffoldBg,
-                              cardGradientStart: widget.cardGradientStart,
-                              cardGradientEnd: widget.cardGradientEnd,
-                              cardBorder: widget.cardBorder,
-                              onPaymentUpdated: _refreshCurrentYearInvestments,
-                            ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CropDetailScreen(
+                            crop: crop,
+                            accent: widget.accent,
+                            primaryText: widget.primaryText,
+                            secondaryText: widget.secondaryText,
+                            scaffoldBg: widget.scaffoldBg,
+                            cardGradientStart: widget.cardGradientStart,
+                            cardGradientEnd: widget.cardGradientEnd,
+                            cardBorder: widget.cardBorder,
+                            onUpdate: _refreshCurrentYearCrops,
                           ),
-                        );
-                      }
+                        ),
+                      );
                     },
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
@@ -188,79 +186,23 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // LEFT SIDE
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                inv.description,
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: widget.primaryText),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Date: ${inv.date.year}-${inv.date.month.toString().padLeft(2, '0')}-${inv.date.day.toString().padLeft(2, '0')}",
-                                style: TextStyle(color: widget.secondaryText),
-                              ),
-                              if (inv.remainingAmount != null) ...[
-                                const SizedBox(height: 4),
-                                if (inv.remainingAmount! > 0)
-                                  Text(
-                                    "Remaining amount to be paid: ₹${inv.remainingAmount!.toStringAsFixed(0)}",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.orange.shade700,
-                                    ),
-                                  )
-                                else
-                                  Text(
-                                    "Fully Paid ✅",
-                                    style: TextStyle(
-                                      fontSize: 14,
+                              Text(crop.name,
+                                  style: TextStyle(
+                                      fontSize: 16,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.green.shade600,
-                                    ),
-                                  ),
-                              ],
-                            ],
-                          ),
-
-                          // RIGHT SIDE
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                "₹${inv.amount}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: widget.accent,
-                                ),
-                              ),
-                              if (inv.workers != null && inv.workers!.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Icon(Icons.people, color: widget.accent),
-                                if (inv.remainingAmount != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: inv.remainingAmount! > 0
-                                        ? Text(
-                                      "₹${inv.remainingAmount!.toStringAsFixed(0)}",
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.redAccent,
-                                      ),
-                                    )
-                                        : Icon(Icons.check_circle,
-                                        color: Colors.green, size: 16),
-                                  ),
-                              ],
+                                      color: widget.primaryText)),
+                              const SizedBox(height: 4),
+                              Text("Planted: ${crop.plantedDate}",
+                                  style:
+                                  TextStyle(color: widget.secondaryText)),
+                              Text("Value: ₹${crop.value?.toStringAsFixed(0)}",
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: widget.accent)),
                             ],
                           ),
                         ],
@@ -280,7 +222,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
           final result = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => AddInvestmentScreen(
+              builder: (_) => AddCropScreen(
                 scaffoldBg: widget.scaffoldBg,
                 primaryText: widget.primaryText,
                 secondaryText: widget.secondaryText,
@@ -291,7 +233,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               ),
             ),
           );
-          if (result == true) _refreshCurrentYearInvestments();
+          if (result == true) _refreshCurrentYearCrops();
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -413,4 +355,6 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
       ),
     );
   }
+
+// Implement _buildBarChart and _buildLineChart similar to InvestmentsScreen
 }

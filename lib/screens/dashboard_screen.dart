@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dashboard/crop_screen.dart';
 import 'dashboard/summary_screen.dart';
 import 'dashboard/investments_screen.dart';
 import 'dashboard/returns_screen.dart';
@@ -33,7 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     super.initState();
     _loadUser();
     _loadUserAndReports();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -195,13 +196,19 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             /// Tab Bar
             TabBar(
               controller: _tabController,
+              isScrollable: true,
               labelColor: accent,
               unselectedLabelColor: secondaryText,
               indicatorColor: accent,
+              // 👇 remove extra padding
+              tabAlignment: TabAlignment.start, // Flutter 3.7+
+              // OR if using older Flutter:
+              // padding: EdgeInsets.zero,
               tabs: const [
                 Tab(text: "Summary"),
                 Tab(text: "Investments"),
                 Tab(text: "Returns"),
+                Tab(text: "Crops"),
               ],
             ),
 
@@ -234,6 +241,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     cardGradientStart: cardGradientStart,
                     cardGradientEnd: cardGradientEnd,
                     cardBorder: cardBorder,),
+                  CropsScreen(
+                    accent: accent,
+                    primaryText: primaryText,
+                    secondaryText: secondaryText,
+                    scaffoldBg: scaffoldBg,
+                    cardGradientStart: cardGradientStart,
+                    cardGradientEnd: cardGradientEnd,
+                    cardBorder: cardBorder,
+                  ),
                 ],
               ),
             ),
