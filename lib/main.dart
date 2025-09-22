@@ -201,11 +201,13 @@
 // }
 
 import 'package:flutter/material.dart';
-import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'splash_screen.dart';
+// import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+
+Future<void> main() async {
+  // await dotenv.load(fileName: ".env");
   runApp(FarmAbookApp());
 }
 
@@ -235,10 +237,21 @@ class _FarmAbookAppState extends State<FarmAbookApp> {
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.green,
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.black87, fontSize: 13),
+          titleMedium: TextStyle(color: Colors.black, fontSize: 18),
+        ),
       ),
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.green,
+        textTheme: const TextTheme(
+          bodyMedium: TextStyle(color: Colors.grey, fontSize: 13),
+          titleMedium: TextStyle(color: Colors.white, fontSize: 18),
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: Colors.green.shade900,
+        ),
       ),
       themeMode: _themeMode,
       home: SplashScreen(
@@ -248,5 +261,6 @@ class _FarmAbookAppState extends State<FarmAbookApp> {
     );
   }
 }
+
 
 

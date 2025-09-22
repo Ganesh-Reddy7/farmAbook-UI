@@ -1,74 +1,68 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
-class FrostedCard extends StatelessWidget {
+class FrostedCardResponsive extends StatelessWidget {
   final String title;
   final String value;
+  final Color primaryText;
+  final Color secondaryText;
+  final Color gradientStart;
+  final Color gradientEnd;
+  final Color borderColor;
 
-  const FrostedCard({required this.title, required this.value, Key? key})
-      : super(key: key);
+  const FrostedCardResponsive({
+    required this.title,
+    required this.value,
+    required this.primaryText,
+    required this.secondaryText,
+    required this.gradientStart,
+    required this.gradientEnd,
+    required this.borderColor,
+    Key? key,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final double screenW = MediaQuery.of(context).size.width;
+    final double cardWidth = (screenW * 0.38).clamp(96.0, 220.0);
 
     return Container(
-      width: MediaQuery.of(context).size.width * 0.38, // wider card
-      padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+      width: cardWidth,
+      height: 90,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         gradient: LinearGradient(
-          colors: isDark
-              ? [Colors.white.withOpacity(0.05), Colors.white.withOpacity(0.02)]
-              : [Colors.black.withOpacity(0.05), Colors.black.withOpacity(0.02)],
+          colors: [gradientStart, gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(
-          color: isDark ? Colors.white.withOpacity(0.2) : Colors.grey.withOpacity(0.3),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
-            blurRadius: 15,
-            spreadRadius: 2,
-            offset: Offset(0, 5),
-          ),
-          BoxShadow(
-            color: isDark ? Colors.black.withOpacity(0.1) : Colors.white.withOpacity(0.1),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: Offset(-3, -3),
-          ),
-        ],
+        border: Border.all(color: borderColor),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
+                  fontSize: 11,
                   fontWeight: FontWeight.w500,
-                  fontSize: 13,
-                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                  color: secondaryText,
                 ),
               ),
-              SizedBox(height: 4),
+              const SizedBox(height: 6),
               Text(
                 value,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : Colors.black87,
+                  color: primaryText,
                 ),
               ),
             ],
