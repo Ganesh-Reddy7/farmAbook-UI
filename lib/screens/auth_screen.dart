@@ -1,16 +1,15 @@
-import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:ui';
+import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import '../services/auth_service.dart';
-
 
 class AuthScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
   const AuthScreen({Key? key, required this.toggleTheme}) : super(key: key);
 
   @override
-  _AuthScreenState createState() => _AuthScreenState();
+  State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen>
@@ -28,10 +27,9 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 12),
-    )..repeat();
+    _animationController =
+    AnimationController(vsync: this, duration: const Duration(seconds: 12))
+      ..repeat();
   }
 
   @override
@@ -43,9 +41,10 @@ class _AuthScreenState extends State<AuthScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false, // important: no jump
       body: Stack(
         children: [
-          // Dark background
+          // Background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -56,7 +55,7 @@ class _AuthScreenState extends State<AuthScreen>
             ),
           ),
 
-          // Floating neon shapes
+          // Floating glow shapes
           AnimatedBuilder(
             animation: _animationController,
             builder: (context, child) {
@@ -70,86 +69,31 @@ class _AuthScreenState extends State<AuthScreen>
               );
             },
           ),
-          // Frosted glass card
-          Center(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(28),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom,
-                  ),
-                  child: Container(
-                    width: MediaQuery.of(context).size.width * 0.85,
-                    padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 30),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                          color: Colors.greenAccent.withOpacity(0.3), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.green.shade900.withOpacity(0.5),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.eco_outlined,
-                          size: 80,
-                          color: Colors.white, // leaf icon in white
-                        ),
 
-                        const SizedBox(height: 30),
-                        _buildTextField("Phone Number", false, controller: _phoneController),
-                        if (!isLogin) ...[
-                          const SizedBox(height: 20),
-                          _buildTextField("User Name", false, controller: _userNameController),
-                        ],
-                        const SizedBox(height: 20),
-                        _buildTextField("Password", true, controller: _passwordController),
-                        if (!isLogin) ...[
-                          const SizedBox(height: 20),
-                          _buildTextField("Confirm Password", true, controller: _confirmController),
-                        ],
-                        const SizedBox(height: 36),
-                        _buildNeonButton(isLogin ? "Login" : "Register"),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              isLogin = !isLogin;
-                            });
-                          },
-                          child: Text(
-                            isLogin
-                                ? "Don't have an account? Register"
-                                : "Already have an account? Login",
-                            style: TextStyle(
-                                color: Colors.greenAccent.shade200,
-                                fontSize: 14,
-                                decoration: TextDecoration.underline),
-                          ),
-                        )
-                      ],
+          // Frosted card with smooth keyboard shift
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Center(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                    margin: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
                     ),
+                    child: _buildFrostedCard(),
                   ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
-
         ],
       ),
     );
   }
 
-  // Neon glowing circle helper
+  // Glow circles
   Widget _buildGlowCircle(double angle, double x, double y, double size) {
     return Positioned(
       top: y + 50 * sin(angle),
@@ -172,17 +116,89 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-  Widget _buildTextField(String hint, bool obscure, {TextEditingController? controller}) {
+  // Frosted card
+  Widget _buildFrostedCard() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.85,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 30),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Colors.greenAccent.withOpacity(0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.shade900.withOpacity(0.5),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.eco_outlined, size: 80, color: Colors.white),
+              const SizedBox(height: 30),
+              _buildTextField("Phone Number", false,
+                  controller: _phoneController),
+              if (!isLogin) ...[
+                const SizedBox(height: 20),
+                _buildTextField("User Name", false,
+                    controller: _userNameController),
+              ],
+              const SizedBox(height: 20),
+              _buildTextField("Password", true,
+                  controller: _passwordController),
+              if (!isLogin) ...[
+                const SizedBox(height: 20),
+                _buildTextField("Confirm Password", true,
+                    controller: _confirmController),
+              ],
+              const SizedBox(height: 36),
+              _buildNeonButton(isLogin ? "Login" : "Register"),
+              const SizedBox(height: 20),
+              GestureDetector(
+                onTap: () {
+                  setState(() => isLogin = !isLogin);
+                },
+                child: Text(
+                  isLogin
+                      ? "Don't have an account? Register"
+                      : "Already have an account? Login",
+                  style: TextStyle(
+                    color: Colors.greenAccent.shade200,
+                    fontSize: 14,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Text field builder
+  Widget _buildTextField(String hint, bool obscure,
+      {TextEditingController? controller}) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.white70),
+        hintStyle: const TextStyle(color: Colors.white70),
         filled: true,
         fillColor: Colors.white.withOpacity(0.05),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        contentPadding:
+        const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: Colors.white, width: 0.8),
@@ -195,10 +211,7 @@ class _AuthScreenState extends State<AuthScreen>
     );
   }
 
-
-
-
-
+  // Neon button
   Widget _buildNeonButton(String text) {
     return InkWell(
       onTap: _loading ? null : () async {
@@ -231,13 +244,12 @@ class _AuthScreenState extends State<AuthScreen>
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (_) => DashboardScreen(onToggleTheme: widget.toggleTheme),
+              builder: (_) =>
+                  DashboardScreen(onToggleTheme: widget.toggleTheme),
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Authentication Failed")),
-          );
+          _showMessage("Authentication failed. Please try again.", success: false);
         }
       },
       borderRadius: BorderRadius.circular(24),
@@ -271,8 +283,35 @@ class _AuthScreenState extends State<AuthScreen>
       ),
     );
   }
+  void _showMessage(String message, {bool success = true}) {
+    final snackBar = SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            success ? Icons.check_circle : Icons.error,
+            color: success ? Colors.greenAccent : Colors.redAccent,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: success ? Colors.black87 : Colors.red.shade900,
+      behavior: SnackBarBehavior.floating,
+      margin: const EdgeInsets.all(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      duration: const Duration(seconds: 3),
+    );
 
-
-
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(snackBar);
+  }
 
 }

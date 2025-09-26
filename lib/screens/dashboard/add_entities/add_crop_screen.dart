@@ -1,7 +1,7 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
-import '../../../models/crop.dart';
 import '../../../services/crop_service.dart';
+import '../../../widgets/FrostedInput.dart';
 
 class AddCropScreen extends StatefulWidget {
   final Color accent;
@@ -32,7 +32,6 @@ class _AddCropScreenState extends State<AddCropScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _valueController = TextEditingController();
   DateTime? _plantedDate;
-
   bool _isSaving = false;
 
   void _saveCrop() async {
@@ -41,6 +40,7 @@ class _AddCropScreenState extends State<AddCropScreen> {
     setState(() => _isSaving = true);
 
     try {
+      log("GKaaxx :: $_nameController . $_valueController , $_plantedDate");
       final success = await CropService().addCrop(
         name: _nameController.text.trim(),
         area: double.parse(_valueController.text.trim()),
@@ -83,8 +83,14 @@ class _AddCropScreenState extends State<AddCropScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: const Text("Add Crop",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          "Add Crop",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: widget.primaryText,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -92,56 +98,55 @@ class _AddCropScreenState extends State<AddCropScreen> {
           key: _formKey,
           child: Column(
             children: [
-              TextFormField(
+              FrostedInput(
+                label: "Crop Name",
+                icon: Icons.agriculture,
                 controller: _nameController,
-                style: TextStyle(color: widget.primaryText),
-                decoration: InputDecoration(
-                  labelText: "Crop Name",
-                  labelStyle: TextStyle(color: widget.secondaryText),
-                  border: const OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                val == null || val.isEmpty ? "Enter crop name" : null,
+                compact: true,
               ),
               const SizedBox(height: 12),
-              TextFormField(
+              FrostedInput(
+                label: "Enter Area in Acre",
+                icon: Icons.calculate,
                 controller: _valueController,
-                style: TextStyle(color: widget.primaryText),
                 keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: "Value",
-                  labelStyle: TextStyle(color: widget.secondaryText),
-                  border: const OutlineInputBorder(),
-                ),
-                validator: (val) =>
-                val == null || val.isEmpty ? "Enter crop value" : null,
+                compact: true,
               ),
               const SizedBox(height: 12),
-              GestureDetector(
-                onTap: _pickPlantedDate,
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: widget.cardBorder),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    _plantedDate == null
-                        ? "Select Planted Date"
-                        : "${_plantedDate!.year}-${_plantedDate!.month.toString().padLeft(2,'0')}-${_plantedDate!.day.toString().padLeft(2,'0')}",
-                    style: TextStyle(
-                        color: _plantedDate == null ? widget.secondaryText : widget.primaryText),
-                  ),
+              FrostedInput(
+                label: "Select Date",
+                icon: Icons.calendar_today,
+                controller: TextEditingController(
+                  text: _plantedDate != null
+                      ? "${_plantedDate!.year}-${_plantedDate!.month.toString().padLeft(2,'0')}-${_plantedDate!.day.toString().padLeft(2,'0')}"
+                      : "",
                 ),
+                readOnly: true,
+                onTap: _pickPlantedDate,
+                compact: true,
               ),
               const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: widget.accent),
-                onPressed: _isSaving ? null : _saveCrop,
-                child: _isSaving
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Add Crop"),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: widget.accent,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: _isSaving ? null : _saveCrop,
+                  child: _isSaving
+                      ? const SizedBox(
+                    height: 18,
+                    width: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : const Text("Add Crop"),
+                ),
               ),
             ],
           ),

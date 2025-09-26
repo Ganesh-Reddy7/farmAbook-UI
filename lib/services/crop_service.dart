@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:ffi';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/crop.dart';
+import '../models/investment.dart';
 
 class CropService {
-  final String baseUrl = "https://yourapi.com/api/"; // replace with your API base URL
+  final String baseUrl = "http://10.94.67.202:8080/api"; // replace with your API base URL
 
   /// Fetch list of crops for the current farmer
   Future<List<Crop>> getCrops() async {
@@ -57,7 +59,7 @@ class CropService {
 
       final body = jsonEncode({
         "name": name,
-        "plantedDate": "${plantedDate.year.toString().padLeft(4,'0')}-"
+        "date": "${plantedDate.year.toString().padLeft(4,'0')}-"
             "${plantedDate.month.toString().padLeft(2,'0')}-"
             "${plantedDate.day.toString().padLeft(2,'0')}",
         "area": area,
@@ -117,9 +119,9 @@ class CropService {
       final token = prefs.getString("auth_token");
       final userData = prefs.getString("user_data");
       if (token == null || userData == null) return [];
-
       final farmerId = jsonDecode(userData)['id'];
-      final url = Uri.parse("$baseUrl/crops?farmerId=$farmerId&year=$year");
+      log("GKaaxx :: $year , $farmerId");
+      final url = Uri.parse("$baseUrl/crops/farmer/$farmerId/financial-year/$year");
 
       final response = await http.get(
         url,
@@ -130,7 +132,9 @@ class CropService {
       );
 
       if (response.statusCode == 200) {
+        log("GKaaxx :: $response");
         final List data = jsonDecode(response.body);
+        log("GKaaxx :: $data");
         return data.map((e) => Crop.fromJson(e)).toList();
       } else {
         log("Get Crops by year failed: ${response.statusCode} ${response.body}");
@@ -163,7 +167,6 @@ class CropService {
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
-        // Each element: {"year":2025,"totalValue":50000.0}
         return List<Map<String, dynamic>>.from(data);
       } else {
         log("Get yearly summary failed: ${response.statusCode} ${response.body}");
@@ -174,4 +177,51 @@ class CropService {
       return [];
     }
   }
+
+  // Future<List<Map<String, dynamic>>> updateCropArea({required int cropId, required int newArea}) async {
+  //
+  // }
+  Future<List<Investment>> getCropInvestmentByYear({
+    required DateTime? date,
+    required int cropId,
+  }) async {
+    try {
+      log("Get Crops");
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString("auth_token");
+      final userData = prefs.getString("user_data");
+      if (token == null || userData == null) return [];
+
+      final farmerId = jsonDecode(userData)['id'].toString();
+
+      final url = Uri.parse("$baseUrl/investments/crop/investments-by-year");
+      final response = await http.post(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+          body: jsonEncode({
+            "farmerId": int.parse(farmerId),
+            "cropId": cropId,
+            "year": date?.year,
+          })
+      );
+
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        log("GKaaxx :: data :: $data");
+        return data.map((json) => Investment.fromJson(json)).toList();
+      } else {
+        log("Get yearly summary failed: ${response.statusCode} ${response.body}");
+        return [];
+      }
+    } catch (e) {
+      log("Get yearly summary exception: $e");
+      return [];
+    }
+  }
+
+
+
 }

@@ -1,6 +1,9 @@
 import 'dart:ui';
+import 'package:farmabook/models/crop.dart';
 import 'package:flutter/material.dart';
 import '../../../services/investment_service.dart';
+import '../../../widgets/FrostedDropDown.dart';
+import '../../../widgets/FrostedInput.dart';
 
 
 class AddInvestmentScreen extends StatefulWidget {
@@ -30,9 +33,30 @@ class AddInvestmentScreen extends StatefulWidget {
 class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+  cropDTO? _selectedCrop;
+  List<cropDTO> _cropOptions = [];
   DateTime? _selectedDate;
   List<Worker> _workers = [];
   bool _isSaving = false;
+  bool _loadingCrops = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCrops();
+  }
+
+  Future<void> _fetchCrops() async {
+    try {
+      _cropOptions = await InvestmentService().getCrops(DateTime.now().year);
+      setState(() {
+        _loadingCrops = false;
+      });
+    } catch (e) {
+      setState(() => _loadingCrops = false);
+      print("Failed to fetch crops: $e");
+    }
+  }
 
   @override
   void dispose() {
@@ -87,9 +111,28 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
                 children: [
                   _buildDateField(),
                   const SizedBox(height: 12),
-                  _buildFrostedInput("Description", Icons.note, _descriptionController, maxLines: 2, compact: true),
+                  FrostedInput(
+                    label: "Amount (₹)",
+                    icon: Icons.currency_rupee,
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    compact: true,
+                  ),
                   const SizedBox(height: 12),
-                  _buildFrostedInput("Amount (₹)", Icons.currency_rupee, _amountController, compact: true),
+                  FrostedDropdown(
+                    label: "Select Crop",
+                    icon: Icons.agriculture,
+                    options: _cropOptions.map((c) => c.cropName).toList(),
+                    selectedValue: _selectedCrop?.cropName,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCrop = _cropOptions.firstWhere((c) => c.cropName == value);;
+                      });
+                    },
+                    compact: true,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildFrostedInput("Description", Icons.note, _descriptionController, maxLines: 2, compact: true),
                   const SizedBox(height: 24),
                   _buildSaveButton(isSingle: true),
                 ],
@@ -102,6 +145,19 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
               child: Column(
                 children: [
                   _buildDateField(),
+                  const SizedBox(height: 12),
+                  FrostedDropdown(
+                    label: "Select Crop",
+                    icon: Icons.agriculture,
+                    options: _cropOptions.map((c) => c.cropName).toList(),
+                    selectedValue: _selectedCrop?.cropName,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedCrop = _cropOptions.firstWhere((c) => c.cropName == value);;
+                      });
+                    },
+                    compact: true,
+                  ),
                   const SizedBox(height: 12),
                   _buildFrostedInput("Description", Icons.note, _descriptionController, maxLines: 2, compact: true),
                   const SizedBox(height: 12),
@@ -123,7 +179,7 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
                               gradient: LinearGradient(
                                 colors: [
                                   widget.cardGradientStart.withOpacity(0.3),
-                                  widget.cardGradientEnd.withOpacity(0.2)
+                                  widget.cardGradientEnd.withOpacity(0.2),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -172,13 +228,15 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 6),
                               ],
                             ),
                           ),
                         ),
                       );
                     },
-                  ),
+                  )
+                  ,
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
                     onPressed: () => setState(() => _workers.add(Worker())),
@@ -206,13 +264,14 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
   }
 
   Widget _buildDateField() {
-    return _buildFrostedInput(
-      "Select Date",
-      Icons.calendar_today,
-      TextEditingController(
-          text: _selectedDate != null
-              ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}"
-              : ""),
+    return FrostedInput(
+      label: "Select Date",
+      icon: Icons.calendar_today,
+      controller: TextEditingController(
+        text: _selectedDate != null
+            ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}"
+            : "",
+      ),
       readOnly: true,
       onTap: _pickDate,
       compact: true,
@@ -339,10 +398,12 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
 
     if (_workers.isEmpty) {
       final amount = double.tryParse(_amountController.text) ?? 0;
+
       success = await service.saveInvestment(
         amount: amount,
         description: _descriptionController.text,
         date: _selectedDate!,
+        cropId: _selectedCrop!.cropId,
       );
     } else {
       final workerData = _workers.map((w) => w.toMap()).toList();
@@ -350,6 +411,7 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
         description: _descriptionController.text,
         date: _selectedDate!,
         workers: workerData,
+        cropId: _selectedCrop!.cropId,
       );
     }
 

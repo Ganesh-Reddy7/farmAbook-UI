@@ -19,18 +19,25 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _iconScaleController;
-  late Animation<double> _iconScaleAnimation;
+  late final AnimationController _iconScaleController;
+  late final Animation<double> _iconScaleAnimation;
 
-  late AnimationController _taglineFadeController;
-  late Animation<double> _taglineFadeAnimation;
+  late final AnimationController _taglineFadeController;
+  late final Animation<double> _taglineFadeAnimation;
 
-  late AnimationController _backgroundFadeController;
-  late Animation<double> _backgroundFadeAnimation;
+  late final AnimationController _backgroundFadeController;
+  late final Animation<double> _backgroundFadeAnimation;
+
+  late final Widget _nextScreen;
 
   @override
   void initState() {
     super.initState();
+
+    // Preload next screen so there’s no white flash
+    _nextScreen = widget.isLoggedIn
+        ? DashboardScreen(onToggleTheme: widget.toggleTheme)
+        : AuthScreen(toggleTheme: widget.toggleTheme);
 
     // Animation controllers
     _iconScaleController = AnimationController(
@@ -48,28 +55,35 @@ class _SplashScreenState extends State<SplashScreen>
     _backgroundFadeAnimation = CurvedAnimation(
         parent: _backgroundFadeController, curve: Curves.easeOut);
 
-    // Start sequence
+    // Start animations
     _iconScaleController.forward().whenComplete(() {
       _taglineFadeController.forward();
     });
 
-    // Navigate after splash
+    // Navigate after splash duration
     Timer(const Duration(milliseconds: 3000), () {
       if (!mounted) return;
       _backgroundFadeController.forward().whenComplete(() {
-          if (!mounted) return;
-          Navigator.of(context).pushReplacement(
-            PageRouteBuilder(
-              transitionDuration: const Duration(milliseconds: 600),
-              pageBuilder: (_, __, ___) =>
-              widget.isLoggedIn
-                  ? DashboardScreen(onToggleTheme: widget.toggleTheme)
-                  : AuthScreen(toggleTheme: widget.toggleTheme),
-              transitionsBuilder: (_, animation, __, child) {
-                return FadeTransition(opacity: animation, child: child);
-              },
-            ),
-          );
+        if (!mounted) return;
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            transitionDuration: const Duration(milliseconds: 800),
+            pageBuilder: (_, __, ___) => _nextScreen,
+            transitionsBuilder: (_, animation, __, child) {
+              // Fade + Scale
+              final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeIn),
+              );
+              final scale = Tween<double>(begin: 0.8, end: 1.0).animate(
+                CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+              );
+              return FadeTransition(
+                opacity: fade,
+                child: ScaleTransition(scale: scale, child: child),
+              );
+            },
+          ),
+        );
       });
     });
   }
@@ -85,9 +99,10 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF1E2822), // match gradient start
       body: FadeTransition(
-        opacity:
-        Tween<double>(begin: 1.0, end: 0.0).animate(_backgroundFadeAnimation),
+        opacity: Tween<double>(begin: 1.0, end: 0.0)
+            .animate(_backgroundFadeAnimation),
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -100,7 +115,6 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo with glow & scale animation
                 ScaleTransition(
                   scale: _iconScaleAnimation,
                   child: Container(
@@ -118,14 +132,13 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
                     child: ClipOval(
                       child: Image.asset(
-                        "assets/icon/Main_Icon.png", // your logo
+                        "assets/icon/Main_Icon.png",
                         fit: BoxFit.contain,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 40),
-                // Tagline fade in
                 FadeTransition(
                   opacity: _taglineFadeAnimation,
                   child: const Text(

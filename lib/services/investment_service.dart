@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:farmabook/models/crop.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/yearly_summary.dart';
 import '../models/investment.dart';
+import '../models/crop.dart';
 
 class InvestmentService {
   // Base URL from your backend
@@ -14,6 +16,7 @@ class InvestmentService {
     required double amount,
     required String description,
     required DateTime date,
+    required int cropId,
   }) async {
     try {
       final formattedDate = "${date.year.toString().padLeft(4,'0')}-"
@@ -37,6 +40,7 @@ class InvestmentService {
         "amount": amount,
         "description": description,
         "date": formattedDate,
+        "cropId":cropId
       });
 
       final response = await http.post(
@@ -63,6 +67,7 @@ class InvestmentService {
     required String description,
     required DateTime date,
     required List<Map<String, dynamic>> workers,
+    required int cropId
   }) async {
     try {
       final formattedDate = "${date.year.toString().padLeft(4,'0')}-"
@@ -85,6 +90,7 @@ class InvestmentService {
         "description": description,
         "date":formattedDate,
         "workers": workers, // each worker: {name, wage, role}
+        "cropId":cropId
       });
 
       final response = await http.post(
@@ -178,6 +184,32 @@ class InvestmentService {
     }
     return [];
   }
+
+  Future<List<cropDTO>> getCrops(int year) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("auth_token");
+    final userData = prefs.getString("user_data");
+    if (token == null || userData == null) return [];
+
+    final user = jsonDecode(userData);
+    final farmerId = user['id'];
+
+    final uri = Uri.parse(
+        "$baseUrl/crops/farmer/$farmerId/dropdown/fy/$year"
+    );
+
+    final response = await http.get(uri, headers: {
+      "Authorization": "Bearer $token",
+      "Content-Type": "application/json"
+    });
+    log("Response: ${response.body}");
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.map((e) => cropDTO.fromJson(e)).toList();
+    }
+    return [];
+  }
+
 
 
 }
