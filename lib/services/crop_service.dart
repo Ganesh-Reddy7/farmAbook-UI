@@ -7,7 +7,7 @@ import '../models/crop.dart';
 import '../models/investment.dart';
 
 class CropService {
-  final String baseUrl = "http://10.94.67.202:8080/api"; // replace with your API base URL
+  final String baseUrl = "http://10.249.31.202:8080/api"; // replace with your API base URL
 
   /// Fetch list of crops for the current farmer
   Future<List<Crop>> getCrops() async {

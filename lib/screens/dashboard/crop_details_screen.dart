@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/crop.dart';
 import '../../models/investment.dart';
+import '../../models/return_model.dart';
 import '../../services/crop_service.dart';
+import '../../services/return_service.dart';
 import '../../widgets/frosted_button.dart';
 import 'package:sticky_grouped_list/sticky_grouped_list.dart';
 
@@ -40,7 +42,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
   late Crop crop;
   CropTab selectedTab = CropTab.investments;
   List<Investment> investments = [];
-  List<Investment> returnsData = [];
+  List<ReturnDetailModel> returnsData = [];
   bool isLoading = true;
 
   @override
@@ -54,7 +56,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
   Future<void> _fetchCropDetails() async {
     try {
       final inv = await CropService().getCropInvestmentByYear(date:crop.plantedDate, cropId:crop.id);
-      final ret = await CropService().getCropInvestmentByYear(date:crop.plantedDate, cropId:crop.id);
+      final ret = await ReturnService().getReturnsByCropAndYear(cropId:crop.id , year:crop.plantedDate!.year,);
       log("GKaaxx :: inv :: $inv");
 
       setState(() {
@@ -539,50 +541,71 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
   }
 
   Widget _buildReturnsList() {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (returnsData.isEmpty) {
+    if (isLoading) return const Center(child: CircularProgressIndicator());
+    if (investments.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(16),
-        child: Text("No returns found",
+        child: Text("No investments found",
             style: TextStyle(color: widget.secondaryText)),
       );
     }
 
-    return ListView.builder(
-      itemCount: returnsData.length,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final ret = returnsData[index]; // ReturnEntry object
-        return Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-            color: widget.cardGradientEnd.withOpacity(0.08),
-          ),
-          child: ListTile(
-            leading:
-            Icon(Icons.trending_up, color: Colors.green.withOpacity(0.8)),
-            title: Text(
-              ret.description ?? "No description",
-              style: TextStyle(
-                  color: widget.primaryText, fontWeight: FontWeight.bold),
+    final grouped = groupByMonth<ReturnDetailModel>(
+      returnsData,
+          (inv) => inv.date, // assuming `date` is String
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: grouped.entries.map((entry) {
+        final month = entry.key;
+        final monthItems = entry.value;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                month,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: widget.primaryText,
+                ),
+              ),
             ),
-            subtitle: Text(
-              "Date: ${ret.date}",
-              style: TextStyle(color: widget.secondaryText, fontSize: 12),
-            ),
-            trailing: Text(
-              "₹${(ret.amount ?? 0).toString()}",
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.green),
-            ),
-          ),
+            ...monthItems.map((inv) => Container(
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+                color: widget.cardGradientStart.withOpacity(0.08),
+              ),
+              child: ListTile(
+                leading: Icon(Icons.trending_up, color: Colors.green.withOpacity(0.8)),
+                title: Text(
+                  inv.description ?? "No description",
+                  style: TextStyle(
+                    color: widget.primaryText,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: Text(
+                  "${inv.date?.toLocal().toString().split(' ').first}    ⚖️ Quantity: ${inv.quantity ?? 0}",
+                  style: TextStyle(color: widget.secondaryText, fontSize: 12),
+                ),
+                trailing: Text(
+                  "₹${inv.amount ?? 0}",
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.greenAccent),
+                ),
+              ),
+
+            ))
+          ],
         );
-      },
+      }).toList(),
     );
   }
 

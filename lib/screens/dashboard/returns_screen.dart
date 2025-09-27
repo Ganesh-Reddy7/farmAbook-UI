@@ -1,7 +1,12 @@
+import 'dart:math';
+import 'dart:ui';
+
+import 'package:farmabook/screens/dashboard/add_entities/add_returns_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/return_model.dart';
 import '../../services/return_service.dart';
+import 'detail_screens/return_details_screen.dart';
 
 class ReturnsScreen extends StatefulWidget {
   final Color accent;
@@ -31,7 +36,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
   int _selectedYear = DateTime.now().year;
   bool _isLineChart = false;
 
-  Map<int, List<ReturnModel>> returnsByYear = {};
+  Map<int, List<ReturnsList>> returnsByYear = {};
   Map<int, double> yearlyReturns = {};
 
   @override
@@ -66,7 +71,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
   Widget build(BuildContext context) {
     final currentYearReturns = returnsByYear[_selectedYear] ?? [];
     final totalReturn =
-    currentYearReturns.fold<double>(0.0, (sum, ret) => sum + ret.amount);
+    currentYearReturns.fold<double>(0.0, (sum, ret) => sum + ret.totalReturns);
     final lastFiveYears =
     List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
     double maxY = yearlyReturns.values.isNotEmpty
@@ -146,7 +151,25 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                 itemCount: currentYearReturns.length,
                 itemBuilder: (context, index) {
                   final ret = currentYearReturns[index];
-                  return Container(
+                  return GestureDetector(
+                      onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ReturnDetailsScreen(
+                                crop: ret, // ReturnsList object
+                                accent: widget.accent,
+                                primaryText: widget.primaryText,
+                                secondaryText: widget.secondaryText,
+                                scaffoldBg: widget.scaffoldBg,
+                                cardGradientStart: widget.cardGradientStart,
+                                cardGradientEnd: widget.cardGradientEnd,
+                                cardBorder: widget.cardBorder,
+                              ),
+                            ),
+                          );
+                      },
+                  child:  Container(
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -169,7 +192,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              ret.description,
+                              ret.cropName,
                               style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -177,7 +200,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              "Date: ${ret.date.year}-${ret.date.month.toString().padLeft(2, '0')}-${ret.date.day.toString().padLeft(2, '0')}",
+                              "Total Production: ${ret.totalProduction}",
                               style: TextStyle(color: widget.secondaryText),
                             ),
                           ],
@@ -185,7 +208,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
 
                         // RIGHT SIDE
                         Text(
-                          "₹${ret.amount}",
+                          "₹${ret.totalReturns}",
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -194,6 +217,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                         ),
                       ],
                     ),
+                  ),
                   );
                 },
               ),
@@ -201,6 +225,50 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
           ),
         ),
       ),
+      floatingActionButton: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15), // frosted background
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.white.withOpacity(0.25),
+                width: 1.5,
+              ),
+            ),
+            child: FloatingActionButton(
+              elevation: 0, // keep flat for glass look
+              backgroundColor: Colors.transparent, // let frosted bg show
+              mini: true,
+              onPressed: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddReturnScreen(
+                      scaffoldBg: widget.scaffoldBg,
+                      primaryText: widget.primaryText,
+                      secondaryText: widget.secondaryText,
+                      accent: widget.accent,
+                      cardGradientStart: widget.cardGradientStart,
+                      cardGradientEnd: widget.cardGradientEnd,
+                      cardBorder: widget.cardBorder,
+                    ),
+                  ),
+                );
+                if (result == true) _refreshCurrentYearReturns();
+              },
+              child: const Icon(
+                Icons.create,
+                color: Colors.white,
+                size: 22,
+              ),
+            ),
+          ),
+        ),
+      ),
+
     );
   }
 

@@ -9,7 +9,7 @@ import '../models/crop.dart';
 
 class InvestmentService {
   // Base URL from your backend
-  final String baseUrl = "http://10.94.67.202:8080/api";
+  final String baseUrl = "http://10.249.31.202:8080/api";
 
   /// Save single investment
   Future<bool> saveInvestment({
