@@ -86,6 +86,10 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
       0.0,
           (sum, inv) => sum + inv.amount,
     );
+    final totalRemaining = currentYearInvestments.fold<double>(
+      0.0,
+          (sum, inv) => sum + (inv.remainingAmount ?? 0.0),
+    );
     final lastFiveYears =
     List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
 
@@ -135,9 +139,10 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                     child: Text(
                       "No chart data available",
                       style: TextStyle(
-                          color: widget.secondaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
+                        color: widget.secondaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   )
                       : _isLineChart
@@ -145,9 +150,8 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                       : _buildBarChart(yearlyInvestments, lastFiveYears),
                 ),
               ),
-
               const SizedBox(height: 20),
-              // Year selection dropdown
+              // Year dropdown
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -180,240 +184,20 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-              // Total investment card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    colors: [
-                      widget.cardGradientStart.withOpacity(0.1),
-                      widget.cardGradientEnd.withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: widget.accent.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(Icons.account_balance_wallet_outlined,
-                          color: widget.accent, size: 28),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Total Investments",
-                          style: TextStyle(
-                              fontSize: 14,
-                              color: widget.secondaryText,
-                              fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          "₹${totalInvestment.toStringAsFixed(0)}",
-                          style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: widget.accent),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
+              // Total and Pending card
+              _totalAndPendingCard(totalInvestment, totalRemaining),
               const SizedBox(height: 20),
               // Pie chart
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
-                ),
-                child: SizedBox(
-                  height: 220,
-                  child: currentYearInvestments.isEmpty
-                      ? Center(
-                    child: Text(
-                      "No pie chart data available",
-                      style: TextStyle(
-                          color: widget.secondaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  )
-                      : PieChart(
-                    PieChartData(
-                      sections: currentYearInvestments.map((inv) {
-                        final percentage = totalInvestment > 0
-                            ? (inv.amount / totalInvestment) * 100
-                            : 0.0;
-                        return PieChartSectionData(
-                          value: inv.amount,
-                          color: Colors.primaries[
-                          currentYearInvestments.indexOf(inv) %
-                              Colors.primaries.length],
-                          title:
-                          "${inv.description}\n₹${inv.amount.toStringAsFixed(0)}\n${percentage.toStringAsFixed(1)}%",
-                          radius: 60,
-                          titleStyle: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        );
-                      }).toList(),
-                      centerSpaceRadius: 40,
-                      sectionsSpace: 2,
-                    ),
-                  ),
-                ),
-              ),
-
+              _investmentPieChart(currentYearInvestments, totalInvestment),
               const SizedBox(height: 20),
-              // Investments list
+              // Investment list
               currentYearInvestments.isEmpty
-                  ? Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                margin: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      widget.cardGradientStart.withOpacity(0.1),
-                      widget.cardGradientEnd.withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.info_outline, size: 40, color: widget.accent),
-                    const SizedBox(height: 12),
-                    Text(
-                      "No investments available",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: widget.secondaryText),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "Please add investments to view details.",
-                      style: TextStyle(color: widget.secondaryText),
-                    ),
-                  ],
-                ),
-              )
+                  ? _noInvestmentsCard()
                   : Column(
-                children: currentYearInvestments.map((inv) {
-                  return SizedBox(
-                    width: double.infinity,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            widget.cardGradientStart.withOpacity(0.1),
-                            widget.cardGradientEnd.withOpacity(0.05),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            color: widget.scaffoldBg.withOpacity(0.5),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      inv.description,
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: widget.primaryText),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      "Date: ${inv.date.year}-${inv.date.month.toString().padLeft(2,'0')}-${inv.date.day.toString().padLeft(2,'0')}",
-                                      style: TextStyle(color: widget.secondaryText),
-                                    ),
-                                    if (inv.remainingAmount != null) ...[
-                                      const SizedBox(height: 4),
-                                      if (inv.remainingAmount! > 0)
-                                        Text(
-                                          "Remaining: ₹${inv.remainingAmount!.toStringAsFixed(0)}",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.orange.shade700,
-                                          ),
-                                        )
-                                      else
-                                        Text(
-                                          "Fully Paid ✅",
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.green.shade600,
-                                          ),
-                                        ),
-                                    ],
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      "₹${inv.amount.toStringAsFixed(0)}",
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: widget.accent),
-                                    ),
-                                    if (inv.workers != null && inv.workers!.isNotEmpty) ...[
-                                      const SizedBox(height: 6),
-                                      Icon(Icons.people, color: widget.accent),
-                                    ]
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children: currentYearInvestments
+                    .map((inv) => _investmentCard(inv))
+                    .toList(),
               ),
             ],
           ),
@@ -444,6 +228,263 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
     );
   }
 
+  Widget _totalAndPendingCard(double total, double pending) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            widget.cardGradientStart.withOpacity(0.1),
+            widget.cardGradientEnd.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _totalPendingColumn(
+              icon: Icons.account_balance_wallet,
+              iconBg: widget.accent.withOpacity(0.2),
+              amount: total,
+              title: "Total Investment",
+              amountColor: widget.accent),
+          Container(width: 1, height: 60, color: widget.cardBorder.withOpacity(0.3)),
+          _totalPendingColumn(
+              icon: Icons.pending_actions,
+              iconBg: Colors.orange.withOpacity(0.2),
+              amount: pending,
+              title: "Pending Amount",
+              amountColor: Colors.orange.shade700),
+        ],
+      ),
+    );
+  }
+
+  Column _totalPendingColumn(
+      {required IconData icon,
+        required Color iconBg,
+        required double amount,
+        required String title,
+        required Color amountColor}) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+          child: Icon(icon, color: amountColor, size: 28),
+        ),
+        const SizedBox(height: 8),
+        Text(title, style: TextStyle(fontSize: 14, color: widget.secondaryText)),
+        const SizedBox(height: 4),
+        Text(
+          "₹${amount.toStringAsFixed(0)}",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: amountColor),
+        ),
+      ],
+    );
+  }
+
+  Widget _investmentPieChart(List<Investment> investments, double total) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: widget.cardGradientStart.withOpacity(0.05),
+        border: Border.all(color: widget.cardBorder),
+      ),
+      child: SizedBox(
+        height: 220,
+        child: investments.isEmpty
+            ? Center(
+          child: Text(
+            "No pie chart data available",
+            style: TextStyle(
+                color: widget.secondaryText,
+                fontSize: 16,
+                fontWeight: FontWeight.bold),
+          ),
+        )
+            : PieChart(
+          PieChartData(
+            sections: investments.map((inv) {
+              final percentage = total > 0 ? (inv.amount / total) * 100 : 0.0;
+              return PieChartSectionData(
+                value: inv.amount,
+                color: Colors.primaries[investments.indexOf(inv) % Colors.primaries.length],
+                title:
+                "${inv.description}\n₹${inv.amount.toStringAsFixed(0)}\n${percentage.toStringAsFixed(1)}%",
+                radius: 60,
+                titleStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              );
+            }).toList(),
+            centerSpaceRadius: 40,
+            sectionsSpace: 2,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _noInvestmentsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            widget.cardGradientStart.withOpacity(0.1),
+            widget.cardGradientEnd.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.info_outline, size: 40, color: widget.accent),
+          const SizedBox(height: 12),
+          Text(
+            "No investments available",
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.bold, color: widget.secondaryText),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Please add investments to view details.",
+            style: TextStyle(color: widget.secondaryText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _investmentCard(Investment inv) {
+    return GestureDetector(
+      onTap: () {
+        if (inv.workers != null && inv.workers!.isNotEmpty) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WorkerListScreen(
+                investment: inv,
+                accent: widget.accent,
+                primaryText: widget.primaryText,
+                secondaryText: widget.secondaryText,
+                scaffoldBg: widget.scaffoldBg,
+                cardGradientStart: widget.cardGradientStart,
+                cardGradientEnd: widget.cardGradientEnd,
+                cardBorder: widget.cardBorder,
+              ),
+            ),
+          );
+        }
+      },
+      child: SizedBox(
+        width: double.infinity,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                widget.cardGradientStart.withOpacity(0.1),
+                widget.cardGradientEnd.withOpacity(0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                color: widget.scaffoldBg.withOpacity(0.5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left: investment details
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          inv.description,
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: widget.primaryText),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Date: ${inv.date.year}-${inv.date.month.toString().padLeft(2, '0')}-${inv.date.day.toString().padLeft(2, '0')}",
+                          style: TextStyle(color: widget.secondaryText),
+                        ),
+                        if (inv.remainingAmount != null) ...[
+                          const SizedBox(height: 4),
+                          if (inv.remainingAmount! > 0)
+                            Text(
+                              "Remaining: ₹${inv.remainingAmount!.toStringAsFixed(0)}",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.orange.shade700,
+                              ),
+                            )
+                          else
+                            Text(
+                              "Fully Paid ✅",
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green.shade600,
+                              ),
+                            ),
+                        ],
+                      ],
+                    ),
+                    // Right: amount and workers
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          "₹${inv.amount.toStringAsFixed(0)}",
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: widget.accent),
+                        ),
+                        if (inv.workers != null && inv.workers!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Icon(Icons.people, color: widget.accent),
+                        ]
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildBarChart(Map<int, double> yearlyInvestments, List<int> lastFiveYears) {
     return BarChart(
       BarChartData(
@@ -462,10 +503,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                 if (index < 0 || index >= lastFiveYears.length) return const SizedBox();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    lastFiveYears[index].toString(),
-                    style: yLabelStyle,
-                  ),
+                  child: Text(lastFiveYears[index].toString(), style: yLabelStyle),
                 );
               },
             ),
@@ -477,11 +515,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               reservedSize: 50,
               getTitlesWidget: (value, meta) => Padding(
                 padding: const EdgeInsets.only(left: 0),
-                child: Text(
-                  "₹${value.toInt()}",
-                  style: yLabelStyle,
-                  textAlign: TextAlign.right,
-                ),
+                child: Text("₹${value.toInt()}", style: yLabelStyle, textAlign: TextAlign.right),
               ),
             ),
           ),
@@ -494,14 +528,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
           double value = yearlyInvestments[year] ?? 0;
           return BarChartGroupData(
             x: index,
-            barRods: [
-              BarChartRodData(
-                toY: value,
-                color: widget.accent,
-                width: 18,
-                borderRadius: BorderRadius.circular(6),
-              )
-            ],
+            barRods: [BarChartRodData(toY: value, color: widget.accent, width: 18, borderRadius: BorderRadius.circular(6))],
           );
         }),
       ),
@@ -530,10 +557,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               getTitlesWidget: (value, meta) {
                 int index = value.toInt();
                 if (index < 0 || index >= lastFiveYears.length) return const SizedBox();
-                return Text(
-                  lastFiveYears[index].toString(),
-                  style: yLabelStyle,
-                );
+                return Text(lastFiveYears[index].toString(), style: yLabelStyle);
               },
             ),
           ),
@@ -544,11 +568,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               reservedSize: 55,
               getTitlesWidget: (value, meta) => Padding(
                 padding: const EdgeInsets.only(right: 0),
-                child: Text(
-                  "₹${value.toInt()}",
-                  style: yLabelStyle,
-                  textAlign: TextAlign.right,
-                ),
+                child: Text("₹${value.toInt()}", style: yLabelStyle, textAlign: TextAlign.right),
               ),
             ),
           ),
@@ -560,16 +580,12 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            gradient: LinearGradient(
-              colors: [widget.accent.withOpacity(0.5), widget.accent],
-            ),
+            gradient: LinearGradient(colors: [widget.accent.withOpacity(0.5), widget.accent]),
             barWidth: 4,
             dotData: FlDotData(show: true),
             belowBarData: BarAreaData(
               show: true,
-              gradient: LinearGradient(
-                colors: [widget.accent.withOpacity(0.2), Colors.transparent],
-              ),
+              gradient: LinearGradient(colors: [widget.accent.withOpacity(0.2), Colors.transparent]),
             ),
           ),
         ],

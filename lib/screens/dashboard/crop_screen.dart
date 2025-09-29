@@ -57,6 +57,8 @@ class _CropsScreenState extends State<CropsScreen> {
   @override
   Widget build(BuildContext context) {
     final currentYearCrops = cropsByYear[_selectedYear] ?? [];
+    final totalArea = currentYearCrops.fold<double>(0, (sum, c) => sum + c.area);
+    final totalQty = currentYearCrops.fold<double>(0, (sum, c) => sum + (c.value ?? 0));
 
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
@@ -87,16 +89,16 @@ class _CropsScreenState extends State<CropsScreen> {
             children: [
               // -------------------- Main Chart --------------------
               SizedBox(
-                height: 250,
-                child: currentYearCrops.isEmpty
+                height: 280,
+                child
+                    : currentYearCrops.isEmpty
                     ? Center(
                   child: Text(
-                    "No crops added for $_selectedYear",
+                    "No Crops data available",
                     style: TextStyle(
-                      color: widget.secondaryText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                        color: widget.secondaryText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold),
                   ),
                 )
                     : Container(
@@ -144,81 +146,98 @@ class _CropsScreenState extends State<CropsScreen> {
                 ],
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
+
+              // -------------------- Total Area & Quantity --------------------
+              _totalAreaQuantityCard(totalArea, totalQty),
+              const SizedBox(height: 20),
 
               // -------------------- Pie Chart --------------------
-              if (currentYearCrops.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: widget.cardGradientStart.withOpacity(0.05),
-                    border: Border.all(color: widget.cardBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Crop Area Distribution",
-                        style: TextStyle(
-                            fontSize: 16,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  color: widget.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: widget.cardBorder),
+                ),
+                child: SizedBox(
+                  height: 220,
+                  child: currentYearCrops.isEmpty
+                      ? Center(
+                    child: Text(
+                      "No pie chart data available",
+                      style: TextStyle(
+                          color: widget.secondaryText,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  )
+                      : PieChart(
+                    PieChartData(
+                      sections: currentYearCrops.map((crop) {
+                        final percentage = totalArea > 0
+                            ? (crop.area / totalArea) * 100
+                            : 0.0;
+                        return PieChartSectionData(
+                          value: crop.area,
+                          color: _getColorForCrop(crop),
+                          title:
+                          "${crop.name}\n${crop.area.toStringAsFixed(1)} ha\n${percentage.toStringAsFixed(1)}%",
+                          radius: 60,
+                          titleStyle: const TextStyle(
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: widget.primaryText),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        height: 200,
-                        child: PieChart(
-                          PieChartData(
-                            sections: currentYearCrops.map((crop) {
-                              final totalArea = currentYearCrops
-                                  .fold(0.0, (sum, c) => sum + c.area);
-                              return PieChartSectionData(
-                                value: crop.area,
-                                title:
-                                "${crop.name} (${crop.area.toStringAsFixed(1)} ha)",
-                                color: _getColorForCrop(crop),
-                                radius: 60,
-                                titleStyle: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              );
-                            }).toList(),
-                            sectionsSpace: 2,
-                            centerSpaceRadius: 30,
+                            color: Colors.white,
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
+                        );
+                      }).toList(),
+                      centerSpaceRadius: 40,
+                      sectionsSpace: 2,
+                    ),
                   ),
                 ),
-
-              // -------------------- Total Value --------------------
-              Text(
-                "Crops in $_selectedYear: ₹${currentYearCrops.fold<double>(0, (sum, c) => sum + (c.value ?? 0))}",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
               ),
 
               const SizedBox(height: 20),
 
               // -------------------- Crop List --------------------
               currentYearCrops.isEmpty
-                  ? Padding(
-                padding: const EdgeInsets.symmetric(vertical: 50),
-                child: Center(
-                  child: Text(
-                    "No crops to display",
-                    style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: widget.secondaryText),
+                  ? Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      widget.cardGradientStart.withOpacity(0.1),
+                      widget.cardGradientEnd.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                  borderRadius: BorderRadius.circular(20),
+                  border:
+                  Border.all(color: widget.cardBorder.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 40, color: widget.accent),
+                    const SizedBox(height: 12),
+                    Text(
+                      "No crops available",
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: widget.secondaryText),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "Please add crops to view details.",
+                      style: TextStyle(color: widget.secondaryText),
+                    ),
+                  ],
                 ),
               )
                   : ListView.builder(
@@ -514,18 +533,84 @@ class _CropsScreenState extends State<CropsScreen> {
     );
   }
 
-  // -------------------- Pie Chart Color --------------------
+  Widget _totalAreaQuantityCard(double totalArea, double totalQty) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [
+            widget.cardGradientStart.withOpacity(0.1),
+            widget.cardGradientEnd.withOpacity(0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _areaQuantityColumn(
+            icon: Icons.landscape,
+            iconBg: widget.accent.withOpacity(0.2),
+            amount: totalArea,
+            title: "Total Area",
+            amountSuffix: "ha",
+            amountColor: widget.accent,
+          ),
+          Container(
+            width: 1,
+            height: 60,
+            color: widget.cardBorder.withOpacity(0.3),
+          ),
+          _areaQuantityColumn(
+            icon: Icons.inventory_2,
+            iconBg: Colors.orange.withOpacity(0.2),
+            amount: totalQty,
+            title: "Total Quantity",
+            amountSuffix: "",
+            amountColor: Colors.orange.shade700,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Column _areaQuantityColumn({
+    required IconData icon,
+    required Color iconBg,
+    required double amount,
+    required String title,
+    required Color amountColor,
+    String amountSuffix = "",
+  }) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+          child: Icon(icon, color: amountColor, size: 28),
+        ),
+        const SizedBox(height: 8),
+        Text(title, style: TextStyle(fontSize: 14, color: widget.secondaryText)),
+        const SizedBox(height: 4),
+        Text(
+          "${amount.toStringAsFixed(amountSuffix.isNotEmpty ? 1 : 0)} $amountSuffix",
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: amountColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+
   Color _getColorForCrop(Crop crop) {
-    final colors = [
-      Colors.redAccent,
-      Colors.green,
-      Colors.blue,
-      Colors.orange,
-      Colors.purple,
-      Colors.teal,
-      Colors.brown,
-      Colors.cyan,
-    ];
-    return colors[crop.name.hashCode % colors.length];
+    final index = cropsByYear[_selectedYear]?.indexOf(crop) ?? 0;
+    return Colors.primaries[index % Colors.primaries.length];
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -40,6 +41,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
   List<CropData> selectedYearTopCrops = [];
   List<CropData> selectedYearLowCrops = [];
 
+  Map<int, double> yearlyInvestments = {};
+  Map<int, double> yearlyReturns = {};
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +60,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
       if (fetchedSummary != null && fetchedSummary.isNotEmpty) {
         summaryList = fetchedSummary;
         _selectedYear = fetchedSummary.last.year;
+
+        yearlyInvestments.clear();
+        yearlyReturns.clear();
+        for (var e in summaryList) {
+          yearlyInvestments[e.year] = e.totalInvestment;
+          yearlyReturns[e.year] = e.totalReturns;
+        }
 
         // Fetch all-time crops (year = 0)
         final allTimeCrops = await ReportsService().getCropsDistributionData(year: 0);
@@ -76,14 +87,12 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
     setState(() => _isLoading = false);
   }
-
+  double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
   double get maxY {
-    if (summaryList.isEmpty) return 0;
-    final values = [
-      ...summaryList.map((e) => e.totalInvestment),
-      ...summaryList.map((e) => e.totalReturns),
-    ];
-    return (values.reduce((a, b) => a > b ? a : b)) * 1.2;
+    if (yearlyInvestments.isEmpty && yearlyReturns.isEmpty) return 1000;
+    final maxInv = yearlyInvestments.values.isEmpty ? 0 : yearlyInvestments.values.reduce((a, b) => a > b ? a : b);
+    final maxRet = yearlyReturns.values.isEmpty ? 0 : yearlyReturns.values.reduce((a, b) => a > b ? a : b);
+    return safeMaxY((max(maxInv, maxRet)) as double);
   }
 
   double getReservedYTitleSize(double maxY, TextStyle style) {
@@ -99,9 +108,32 @@ class _SummaryScreenState extends State<SummaryScreen> {
   Widget build(BuildContext context) {
     final yLabelStyle = TextStyle(color: widget.primaryText, fontSize: 12);
     final reservedSize = getReservedYTitleSize(maxY, yLabelStyle);
+    final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
 
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: IconThemeData(color: widget.primaryText),
+        title: Text(
+          "Summary (Investment & Returns)",
+          style: TextStyle(
+            color: widget.primaryText,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(
+              _showBarChart ? Icons.show_chart : Icons.bar_chart,
+              color: widget.accent,
+            ),
+            onPressed: () => setState(() => _showBarChart = !_showBarChart),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: fetchSummaryAndCrops,
         child: _isLoading
@@ -131,32 +163,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title + toggle
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Summary (Investment & Returns)",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: widget.primaryText,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => setState(() => _showBarChart = !_showBarChart),
-                    icon: Icon(
-                      _showBarChart ? Icons.show_chart : Icons.bar_chart,
-                      color: widget.accent,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Chart container
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -167,8 +173,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 child: SizedBox(
                   height: 250,
                   child: _showBarChart
-                      ? _buildNeonBarChart(reservedSize, yLabelStyle)
-                      : _buildNeonLineChart(reservedSize, yLabelStyle),
+                      ?  _buildBarChart(yearlyInvestments, yearlyReturns, lastFiveYears)
+                      : _buildLineChart(yearlyInvestments, yearlyReturns, lastFiveYears),
                 ),
               ),
 
@@ -450,14 +456,111 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  Widget _buildNeonLineChart(double reservedSize, TextStyle yLabelStyle) {
-    if (summaryList.isEmpty)
-      return Center(child: Text("No chart data", style: TextStyle(color: widget.secondaryText)));
+  // ----------------- Helper to calculate left reserved size -----------------
+  double getLeftReservedSize(double maxValue, TextStyle style) {
+    final text = "₹${maxValue.toInt()}"; // largest Y label
+    final tp = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    return tp.width + 8; // some padding
+  }
+
+// ----------------- Bar Chart -----------------
+  Widget _buildBarChart(
+      Map<int, double> investments,
+      Map<int, double> returns,
+      List<int> lastYears,
+      ) {
+    final yLabelStyle = TextStyle(color: widget.primaryText, fontSize: 12);
+    final reservedSize = getLeftReservedSize(maxY, yLabelStyle);
+
+    return BarChart(
+      BarChartData(
+        maxY: maxY,
+        minY: 0,
+        alignment: BarChartAlignment.spaceAround,
+        barGroups: List.generate(lastYears.length, (index) {
+          final year = lastYears[index];
+          return BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: investments[year] ?? 0,
+                width: 14,
+                gradient: LinearGradient(colors: [widget.accent, Colors.greenAccent]),
+              ),
+              BarChartRodData(
+                toY: returns[year] ?? 0,
+                width: 14,
+                gradient: LinearGradient(colors: [Colors.orange, Colors.red]),
+              ),
+            ],
+            barsSpace: 6,
+          );
+        }),
+        titlesData: FlTitlesData(
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value.toInt() >= lastYears.length) return Container();
+                return Text(
+                  lastYears[value.toInt()].toString(),
+                  style: yLabelStyle,
+                );
+              },
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: reservedSize,
+              interval: maxY / 5,
+              getTitlesWidget: (value, meta) => Text(
+                "₹${value.toInt()}",
+                style: yLabelStyle,
+              ),
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(show: true),
+      ),
+    );
+  }
+
+  Widget _buildLineChart(
+      Map<int, double> investments,
+      Map<int, double> returns,
+      List<int> lastYears,
+      ) {
+    if (lastYears.isEmpty) {
+      return Center(
+        child: Text(
+          "No chart data",
+          style: TextStyle(color: widget.secondaryText),
+        ),
+      );
+    }
+
+    // Generate spots using exact indices to avoid duplicates
+    final spotsInvestment = lastYears.asMap().entries
+        .map((e) => FlSpot(e.key.toDouble(), investments[e.value] ?? 0))
+        .toList();
+
+    final spotsReturns = lastYears.asMap().entries
+        .map((e) => FlSpot(e.key.toDouble(), returns[e.value] ?? 0))
+        .toList();
+
+    final yLabelStyle = TextStyle(color: widget.primaryText, fontSize: 12);
 
     return LineChart(
       LineChartData(
         minX: 0,
-        maxX: (summaryList.length - 1).toDouble(),
+        maxX: (lastYears.length - 1).toDouble(),
         minY: 0,
         maxY: maxY,
         gridData: FlGridData(show: true),
@@ -466,17 +569,16 @@ class _SummaryScreenState extends State<SummaryScreen> {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 28,
               interval: 1,
               getTitlesWidget: (value, meta) {
-                if (value.toInt() >= summaryList.length) return Container();
+                final index = value.toInt();
+                if (index < 0 || index >= lastYears.length) return const SizedBox();
                 return Padding(
                   padding: const EdgeInsets.only(top: 4),
-                  child: Transform.rotate(
-                    angle: 0.3,
-                    child: Text(
-                      summaryList[value.toInt()].year.toString(),
-                      style: yLabelStyle,
-                    ),
+                  child: Text(
+                    lastYears[index].toString(),
+                    style: yLabelStyle,
                   ),
                 );
               },
@@ -485,95 +587,47 @@ class _SummaryScreenState extends State<SummaryScreen> {
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-              reservedSize: reservedSize,
-              getTitlesWidget: (value, meta) =>
-                  Text("₹${value.toInt()}", style: yLabelStyle),
+              interval: maxY / 5,
+              reservedSize: 50,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  "₹${value.toInt()}",
+                  style: yLabelStyle,
+                );
+              },
             ),
           ),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         lineBarsData: [
           LineChartBarData(
-            spots: summaryList
-                .asMap()
-                .entries
-                .map((e) => FlSpot(e.key.toDouble(), e.value.totalInvestment))
-                .toList(),
+            spots: spotsInvestment,
             isCurved: true,
             gradient: LinearGradient(colors: [widget.accent, Colors.greenAccent]),
-            barWidth: 3,
+            barWidth: 4,
+            dotData: FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [widget.accent.withOpacity(0.2), Colors.transparent],
+              ),
+            ),
           ),
           LineChartBarData(
-            spots: summaryList
-                .asMap()
-                .entries
-                .map((e) => FlSpot(e.key.toDouble(), e.value.totalReturns))
-                .toList(),
+            spots: spotsReturns,
             isCurved: true,
-            gradient: const LinearGradient(colors: [Colors.orange, Colors.red]),
-            barWidth: 3,
+            gradient: LinearGradient(colors: [Colors.orange, Colors.red]),
+            barWidth: 4,
+            dotData: FlDotData(show: true),
+            belowBarData: BarAreaData(
+              show: true,
+              gradient: LinearGradient(
+                colors: [Colors.orange.withOpacity(0.2), Colors.transparent],
+              ),
+            ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildNeonBarChart(double reservedSize, TextStyle yLabelStyle) {
-    if (summaryList.isEmpty)
-      return Center(child: Text("No chart data", style: TextStyle(color: widget.secondaryText)));
-    final count = summaryList.length;
-    final spacing = count > 5 ? 6.0 : 16.0;
-    return BarChart(
-      BarChartData(
-        alignment: BarChartAlignment.spaceBetween,
-        maxY: maxY,
-        gridData: FlGridData(show: true),
-        borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                if (value.toInt() >= count) return Container();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Transform.rotate(
-                    angle: count > 5 ? 0.4 : 0,
-                    child: Text(
-                      summaryList[value.toInt()].year.toString(),
-                      style: yLabelStyle,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: reservedSize,
-              getTitlesWidget: (value, meta) =>
-                  Text("₹${value.toInt()}", style: yLabelStyle),
-            ),
-          ),
-        ),
-        barGroups: summaryList.asMap().entries.map((e) {
-          return BarChartGroupData(
-            x: e.key,
-            barRods: [
-              BarChartRodData(
-                toY: e.value.totalInvestment,
-                gradient: LinearGradient(colors: [widget.accent, Colors.greenAccent]),
-                width: 14,
-              ),
-              BarChartRodData(
-                toY: e.value.totalReturns,
-                gradient: const LinearGradient(colors: [Colors.orange, Colors.red]),
-                width: 14,
-              ),
-            ],
-            barsSpace: spacing,
-          );
-        }).toList(),
       ),
     );
   }
