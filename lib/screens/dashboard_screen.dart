@@ -17,17 +17,12 @@ class DashboardScreen extends StatefulWidget {
   _DashboardScreenState createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> with TickerProviderStateMixin {
+class _DashboardScreenState extends State<DashboardScreen>
+    with TickerProviderStateMixin {
   int _selectedIndex = 0;
   User? _user; // User info
   Map<String, dynamic>? _reportData;
   late TabController _tabController;
-
-  final List<Map<String, String>> cardData = [
-    {'title': 'PROFIT/LOSS', 'value': '₹12,500'},
-    {'title': 'INVESTMENTS', 'value': '₹75,000'},
-    {'title': 'RETURNS', 'value': '₹8,200'},
-  ];
 
   @override
   void initState() {
@@ -56,7 +51,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
     if (user != null) {
       int year = _getFinancialYear();
-      Map<String, dynamic>? data = await ReportsService().getReports(farmer: user, year: year);
+      Map<String, dynamic>? data =
+      await ReportsService().getReports(farmer: user, year: year);
       if (data != null) {
         setState(() => _reportData = data);
       }
@@ -86,18 +82,59 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
     // Theme-aware colors
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
     final Color primaryText = isDark ? Colors.white : Colors.black87;
-    final Color secondaryText = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
-    final Color cardGradientStart = isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.03);
-    final Color cardGradientEnd = isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01);
-    final Color cardBorder = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+    final Color secondaryText =
+    isDark ? Colors.grey.shade300 : Colors.grey.shade700;
+    final Color accent =
+    isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
+    final Color cardGradientStart = isDark
+        ? Colors.white.withOpacity(0.06)
+        : Colors.black.withOpacity(0.03);
+    final Color cardGradientEnd = isDark
+        ? Colors.white.withOpacity(0.02)
+        : Colors.black.withOpacity(0.01);
+    final Color cardBorder =
+    isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+
+    // Reports
+    final double profitOrLoss =
+    (_reportData?['profitOrLoss'] ?? 0).toDouble();
+    final double totalInvestment =
+    (_reportData?['totalInvestment'] ?? 0).toDouble();
+    final double totalReturns =
+    (_reportData?['totalReturns'] ?? 0).toDouble();
+
+    // Calculate profit/loss percentage
+    double profitLossPercentage = 0;
+    if (totalInvestment > 0) {
+      profitLossPercentage = (profitOrLoss / totalInvestment) * 100;
+    }
+
+    // Colors for profit/loss
+    Color profitLossColor = profitOrLoss >= 0 ? Colors.green : Colors.red;
 
     final cardData = [
-      {'title': 'Profit/Loss', 'value': _reportData?['profitOrLoss']?.toString() ?? '₹0'},
-      {'title': 'Investments', 'value': _reportData?['totalInvestment']?.toString() ?? '₹0'},
-      {'title': 'Returns', 'value': _reportData?['totalReturns']?.toString() ?? '₹0'},
-      {'title': 'Profit/Loss Percentage', 'value': _reportData?['totalReturns']?.toString() ?? '₹0'},
+      {
+        'title': 'Profit/Loss',
+        'value': "₹${profitOrLoss.toStringAsFixed(2)}",
+        'color': profitLossColor
+      },
+      {
+        'title': 'Investments',
+        'value': "₹${totalInvestment.toStringAsFixed(2)}",
+        'color': accent
+      },
+      {
+        'title': 'Returns',
+        'value': "₹${totalReturns.toStringAsFixed(2)}",
+        'color': Colors.blue
+      },
+      {
+        'title': 'Profit/Loss %',
+        'value': "${profitLossPercentage.toStringAsFixed(1)}%",
+        'color': profitLossPercentage >= 0 ? Colors.green : Colors.red
+      },
     ];
+
 
     return Scaffold(
       backgroundColor: scaffoldBg,
@@ -120,7 +157,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                             borderRadius: BorderRadius.circular(8),
                           ),
                           padding: const EdgeInsets.all(6),
-                          child: Icon(Icons.eco, color: scaffoldBg, size: 22),
+                          child:
+                          Icon(Icons.eco, color: scaffoldBg, size: 22),
                         ),
                         const SizedBox(width: 8),
                         Flexible(
@@ -157,11 +195,13 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.brightness_6, color: primaryText.withOpacity(0.9)),
+                        icon: Icon(Icons.brightness_6,
+                            color: primaryText.withOpacity(0.9)),
                         onPressed: widget.onToggleTheme,
                       ),
                       IconButton(
-                        icon: Icon(Icons.person, color: primaryText.withOpacity(0.9)),
+                        icon: Icon(Icons.person,
+                            color: primaryText.withOpacity(0.9)),
                         onPressed: () {},
                       ),
                     ],
@@ -172,7 +212,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
 
             /// Top Cards
             SizedBox(
-              height: 90,
+              height: 100,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: cardData.length,
@@ -181,9 +221,9 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                 itemBuilder: (context, index) {
                   final item = cardData[index];
                   return FrostedCardResponsive(
-                    title: item['title']!,
-                    value: item['value']!,
-                    primaryText: primaryText,
+                    title: item['title'] as String,
+                    value: item['value'] as String,
+                    primaryText: item['color'] as Color,
                     secondaryText: secondaryText,
                     gradientStart: cardGradientStart,
                     gradientEnd: cardGradientEnd,
@@ -200,10 +240,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               labelColor: accent,
               unselectedLabelColor: secondaryText,
               indicatorColor: accent,
-              // 👇 remove extra padding
-              tabAlignment: TabAlignment.start, // Flutter 3.7+
-              // OR if using older Flutter:
-              // padding: EdgeInsets.zero,
+              tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(text: "Summary"),
                 Tab(text: "Investments"),
@@ -217,7 +254,8 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  SummaryScreen( accent: accent,
+                  SummaryScreen(
+                    accent: accent,
                     primaryText: primaryText,
                     secondaryText: secondaryText,
                     scaffoldBg: scaffoldBg,
@@ -234,13 +272,15 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                     cardGradientEnd: cardGradientEnd,
                     cardBorder: cardBorder,
                   ),
-                  ReturnsScreen( accent: accent,
+                  ReturnsScreen(
+                    accent: accent,
                     primaryText: primaryText,
                     secondaryText: secondaryText,
                     scaffoldBg: scaffoldBg,
                     cardGradientStart: cardGradientStart,
                     cardGradientEnd: cardGradientEnd,
-                    cardBorder: cardBorder,),
+                    cardBorder: cardBorder,
+                  ),
                   CropsScreen(
                     accent: accent,
                     primaryText: primaryText,
@@ -265,9 +305,12 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
         unselectedItemColor: secondaryText,
         onTap: _onTabSelected,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: "Summary"),
-          BottomNavigationBarItem(icon: Icon(Icons.add_circle_outline), label: "Add Investment"),
-          BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: "Add Return"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_rounded), label: "Summary"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline), label: "Loan Management"),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.attach_money), label: "Tractor"),
         ],
       ),
     );

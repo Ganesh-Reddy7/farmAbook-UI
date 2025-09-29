@@ -52,6 +52,8 @@ class _CropsScreenState extends State<CropsScreen> {
     await _fetchCropsForYear(_selectedYear);
   }
 
+  double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
+
   @override
   Widget build(BuildContext context) {
     final currentYearCrops = cropsByYear[_selectedYear] ?? [];
@@ -83,7 +85,7 @@ class _CropsScreenState extends State<CropsScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Chart or "No crops" message
+              // -------------------- Main Chart --------------------
               SizedBox(
                 height: 250,
                 child: currentYearCrops.isEmpty
@@ -91,18 +93,27 @@ class _CropsScreenState extends State<CropsScreen> {
                   child: Text(
                     "No crops added for $_selectedYear",
                     style: TextStyle(
-                      color: widget.primaryText,
+                      color: widget.secondaryText,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 )
-                    : _isLineChart
-                    ? _buildLineChart(currentYearCrops)
-                    : _buildBarChart(currentYearCrops),
+                    : Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: widget.cardGradientStart.withOpacity(0.05),
+                    border: Border.all(color: widget.cardBorder),
+                  ),
+                  child: _isLineChart
+                      ? _buildLineChart(currentYearCrops)
+                      : _buildBarChart(currentYearCrops),
+                ),
               ),
               const SizedBox(height: 20),
-              // Year selector
+
+              // -------------------- Year Selector --------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -132,8 +143,60 @@ class _CropsScreenState extends State<CropsScreen> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 12),
-              // Total value for selected year
+
+              // -------------------- Pie Chart --------------------
+              if (currentYearCrops.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: widget.cardGradientStart.withOpacity(0.05),
+                    border: Border.all(color: widget.cardBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Crop Area Distribution",
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: widget.primaryText),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 200,
+                        child: PieChart(
+                          PieChartData(
+                            sections: currentYearCrops.map((crop) {
+                              final totalArea = currentYearCrops
+                                  .fold(0.0, (sum, c) => sum + c.area);
+                              return PieChartSectionData(
+                                value: crop.area,
+                                title:
+                                "${crop.name} (${crop.area.toStringAsFixed(1)} ha)",
+                                color: _getColorForCrop(crop),
+                                radius: 60,
+                                titleStyle: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              );
+                            }).toList(),
+                            sectionsSpace: 2,
+                            centerSpaceRadius: 30,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+
+              // -------------------- Total Value --------------------
               Text(
                 "Crops in $_selectedYear: ₹${currentYearCrops.fold<double>(0, (sum, c) => sum + (c.value ?? 0))}",
                 style: TextStyle(
@@ -141,114 +204,30 @@ class _CropsScreenState extends State<CropsScreen> {
                     fontWeight: FontWeight.bold,
                     color: widget.primaryText),
               ),
+
               const SizedBox(height: 20),
-              // Crop list
+
+              // -------------------- Crop List --------------------
               currentYearCrops.isEmpty
-                  ? const SizedBox()
+                  ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 50),
+                child: Center(
+                  child: Text(
+                    "No crops to display",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: widget.secondaryText),
+                  ),
+                ),
+              )
                   : ListView.builder(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
                 itemCount: currentYearCrops.length,
                 itemBuilder: (context, index) {
                   final crop = currentYearCrops[index];
-                  return GestureDetector(
-                    onTap: () async {
-                      final result = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CropDetailScreen(
-                            crop: crop,
-                            accent: widget.accent,
-                            primaryText: widget.primaryText,
-                            secondaryText: widget.secondaryText,
-                            scaffoldBg: widget.scaffoldBg,
-                            cardGradientStart: widget.cardGradientStart,
-                            cardGradientEnd: widget.cardGradientEnd,
-                            cardBorder: widget.cardBorder,
-                            onUpdate: _refreshCurrentYearCrops,
-                          ),
-                        ),
-                      );
-                      if (result == true) _refreshCurrentYearCrops();
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            widget.cardGradientStart.withOpacity(0.0),
-                            widget.cardGradientEnd.withOpacity(0.1),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: widget.cardBorder.withOpacity(0.5),
-                            width: 1),
-                        boxShadow: [
-                          BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 6,
-                              offset: const Offset(0, 3))
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(crop.name,
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: widget.primaryText)),
-                              ),
-                              Text(
-                                  "${crop.plantedDate?.year}-${crop.plantedDate?.month.toString().padLeft(2, '0')}-${crop.plantedDate?.day.toString().padLeft(2, '0')}",
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: widget.secondaryText)),
-                              const SizedBox(width: 10),
-                              Text("Area: ${crop.area.toStringAsFixed(1)}",
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: widget.accent)),
-                              const Icon(Icons.arrow_forward_ios,
-                                  size: 14, color: Colors.grey),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                  "Qty: ${crop.value?.toStringAsFixed(0) ?? '0'}",
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      color: widget.primaryText)),
-                              Text(
-                                  "Investment: ₹${crop.totalInvested?.toStringAsFixed(0) ?? '0'}",
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.redAccent)),
-                              Text(
-                                  "Returns: ₹${crop.totalReturns?.toStringAsFixed(0) ?? '0'}",
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.green)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildCropCard(crop);
                 },
               ),
             ],
@@ -280,15 +259,113 @@ class _CropsScreenState extends State<CropsScreen> {
     );
   }
 
-  // Bar chart for selected year crops
+  // -------------------- Build Crop Card --------------------
+  Widget _buildCropCard(Crop crop) {
+    return GestureDetector(
+      onTap: () async {
+        final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CropDetailScreen(
+              crop: crop,
+              accent: widget.accent,
+              primaryText: widget.primaryText,
+              secondaryText: widget.secondaryText,
+              scaffoldBg: widget.scaffoldBg,
+              cardGradientStart: widget.cardGradientStart,
+              cardGradientEnd: widget.cardGradientEnd,
+              cardBorder: widget.cardBorder,
+              onUpdate: _refreshCurrentYearCrops,
+            ),
+          ),
+        );
+        if (result == true) _refreshCurrentYearCrops();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              widget.cardGradientStart.withOpacity(0.0),
+              widget.cardGradientEnd.withOpacity(0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: widget.cardBorder.withOpacity(0.5), width: 1),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 3))
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(crop.name,
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: widget.primaryText)),
+                ),
+                Text(
+                    "${crop.plantedDate?.year}-${crop.plantedDate?.month.toString().padLeft(2, '0')}-${crop.plantedDate?.day.toString().padLeft(2, '0')}",
+                    style: TextStyle(
+                        fontSize: 13, color: widget.secondaryText)),
+                const SizedBox(width: 10),
+                Text("Area: ${crop.area.toStringAsFixed(1)}",
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: widget.accent)),
+                const Icon(Icons.arrow_forward_ios,
+                    size: 14, color: Colors.grey),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("Qty: ${crop.value?.toStringAsFixed(0) ?? '0'}",
+                    style: TextStyle(
+                        fontSize: 13, color: widget.primaryText)),
+                Text(
+                    "Investment: ₹${crop.totalInvested?.toStringAsFixed(0) ?? '0'}",
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.redAccent)),
+                Text(
+                    "Returns: ₹${crop.totalReturns?.toStringAsFixed(0) ?? '0'}",
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // -------------------- Bar Chart --------------------
   Widget _buildBarChart(List<Crop> crops) {
     if (crops.isEmpty) return const SizedBox(height: 250);
 
-    double maxY = crops
-        .map((c) => [c.totalInvested ?? 0, c.totalReturns ?? 0])
-        .expand((e) => e)
-        .reduce((a, b) => a > b ? a : b) *
-        1.2;
+    double maxY = safeMaxY(
+      crops
+          .map((c) => [c.totalInvested ?? 0, c.totalReturns ?? 0])
+          .expand((e) => e)
+          .fold(0.0, (a, b) => a > b ? a : b),
+    );
 
     return BarChart(
       BarChartData(
@@ -321,6 +398,7 @@ class _CropsScreenState extends State<CropsScreen> {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 40,
+              interval: 1,
               getTitlesWidget: (value, meta) {
                 int index = value.toInt();
                 if (index < 0 || index >= crops.length) return const SizedBox();
@@ -354,15 +432,16 @@ class _CropsScreenState extends State<CropsScreen> {
     );
   }
 
-  // Line chart for selected year crops
+  // -------------------- Line Chart --------------------
   Widget _buildLineChart(List<Crop> crops) {
     if (crops.isEmpty) return const SizedBox(height: 250);
 
-    double maxY = crops
-        .map((c) => [c.totalInvested ?? 0, c.totalReturns ?? 0])
-        .expand((e) => e)
-        .reduce((a, b) => a > b ? a : b) *
-        1.2;
+    double maxY = safeMaxY(
+      crops
+          .map((c) => [c.totalInvested ?? 0, c.totalReturns ?? 0])
+          .expand((e) => e)
+          .fold(0.0, (a, b) => a > b ? a : b),
+    );
 
     final investedSpots = crops
         .asMap()
@@ -433,5 +512,20 @@ class _CropsScreenState extends State<CropsScreen> {
         borderData: FlBorderData(show: false),
       ),
     );
+  }
+
+  // -------------------- Pie Chart Color --------------------
+  Color _getColorForCrop(Crop crop) {
+    final colors = [
+      Colors.redAccent,
+      Colors.green,
+      Colors.blue,
+      Colors.orange,
+      Colors.purple,
+      Colors.teal,
+      Colors.brown,
+      Colors.cyan,
+    ];
+    return colors[crop.name.hashCode % colors.length];
   }
 }

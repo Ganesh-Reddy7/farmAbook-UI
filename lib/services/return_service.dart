@@ -7,6 +7,8 @@ import '../models/crop.dart';
 import '../models/return_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/yearly_summary.dart';
+
 class ReturnService {
   // Sample data
   final String baseUrl = "http://10.249.31.202:8080/api";
@@ -20,19 +22,30 @@ class ReturnService {
   ];
 
   // Returns a summary of total returns per year
-  Future<List<YearlyReturnSummary>> getYearlySummary({
-    required int startYear,
-    required int endYear,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-    List<YearlyReturnSummary> summary = [];
-    for (int y = startYear; y <= endYear; y++) {
-      final total = _sampleReturns
-          .where((r) => r.year == y)
-          .fold<double>(0, (sum, r) => sum + r.amount);
-      summary.add(YearlyReturnSummary(year: y, totalAmount: total));
+  Future<List<YearlyInvestmentSummaryDTO>> getYearlySummary({required int years}) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString("auth_token");
+    final userData = prefs.getString("user_data");
+    if (token == null || userData == null) return [];
+
+    final user = jsonDecode(userData);
+    final farmerId = user['id'];
+
+    final uri = Uri.parse(
+        "$baseUrl/returns/farmer/$farmerId/returns/yearly?year=$years"
+    );
+
+    final response = await http.get(
+        uri,
+        headers: {
+          "Authorization": "Bearer $token",
+          "Content-Type": "application/json"
+    });
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
+      return data.map((e) => YearlyInvestmentSummaryDTO.fromJson(e)).toList();
     }
-    return summary;
+    return [];
   }
 
   Future<bool> saveReturn({

@@ -1,11 +1,11 @@
+// ------------------- ReturnsScreen.dart -------------------
 import 'dart:math';
 import 'dart:ui';
-
-import 'package:farmabook/screens/dashboard/add_entities/add_returns_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/return_model.dart';
 import '../../services/return_service.dart';
+import 'add_entities/add_returns_screen.dart';
 import 'detail_screens/return_details_screen.dart';
 
 class ReturnsScreen extends StatefulWidget {
@@ -47,10 +47,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
   }
 
   Future<void> _fetchYearlySummary() async {
-    final fetched = await ReturnService().getYearlySummary(
-      startYear: DateTime.now().year - 4,
-      endYear: DateTime.now().year + 1,
-    );
+    final fetched = await ReturnService().getYearlySummary(years: 5);
     setState(() {
       yearlyReturns = {for (var e in fetched) e.year: e.totalAmount};
     });
@@ -67,16 +64,54 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
     await _fetchReturnsForYear(_selectedYear);
   }
 
+  double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
+
+  // -------------------- Glassmorphic Card with No Data --------------------
+  Widget _glassCardNoData(String message) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+          margin: const EdgeInsets.symmetric(vertical: 6),
+          decoration: BoxDecoration(
+            color: widget.cardGradientStart.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.info_outline, size: 40, color: widget.accent),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: widget.secondaryText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentYearReturns = returnsByYear[_selectedYear] ?? [];
-    final totalReturn =
-    currentYearReturns.fold<double>(0.0, (sum, ret) => sum + ret.totalReturns);
+    final totalReturn = currentYearReturns.fold<double>(
+        0.0, (sum, ret) => sum + ret.totalReturns);
     final lastFiveYears =
     List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
-    double maxY = yearlyReturns.values.isNotEmpty
-        ? yearlyReturns.values.reduce((a, b) => a > b ? a : b) * 1.2
-        : 10000;
+    double maxY = safeMaxY(yearlyReturns.values.isNotEmpty
+        ? yearlyReturns.values.reduce(max)
+        : 0);
 
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
@@ -84,17 +119,22 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: Text("Returns",
-            style: TextStyle(
-                color: widget.primaryText,
-                fontWeight: FontWeight.bold,
-                fontSize: 20)),
+        title: Text(
+          "Returns",
+          style: TextStyle(
+            color: widget.primaryText,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: Icon(_isLineChart ? Icons.bar_chart : Icons.show_chart,
-                color: widget.accent),
+            icon: Icon(
+              _isLineChart ? Icons.bar_chart : Icons.show_chart,
+              color: widget.accent,
+            ),
             onPressed: () => setState(() => _isLineChart = !_isLineChart),
-          )
+          ),
         ],
       ),
       body: RefreshIndicator(
@@ -104,21 +144,37 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              SizedBox(
-                height: 250,
-                child: _isLineChart
-                    ? _buildLineChart(yearlyReturns, maxY, lastFiveYears)
-                    : _buildBarChart(yearlyReturns, maxY, lastFiveYears),
+              // -------------------- Yearly Chart --------------------
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: widget.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: widget.cardBorder),
+                ),
+                child: SizedBox(
+                  height: 250,
+                  child: yearlyReturns.isEmpty
+                      ? _glassCardNoData("No yearly returns data")
+                      : _isLineChart
+                      ? _buildLineChart(yearlyReturns, maxY, lastFiveYears)
+                      : _buildBarChart(yearlyReturns, maxY, lastFiveYears),
+                ),
               ),
+
               const SizedBox(height: 20),
+
+              // -------------------- Year Dropdown --------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Select Year:",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: widget.primaryText)),
+                  Text(
+                    "Select Year:",
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: widget.primaryText),
+                  ),
                   DropdownButton<int>(
                     dropdownColor: Colors.black87,
                     value: _selectedYear,
@@ -138,88 +194,198 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              Text("Returns in $_selectedYear : ₹${totalReturn.toStringAsFixed(0)}",
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: widget.primaryText)),
-              const SizedBox(height: 20),
-              ListView.builder(
-                physics: const NeverScrollableScrollPhysics(),
-                shrinkWrap: true,
-                itemCount: currentYearReturns.length,
-                itemBuilder: (context, index) {
-                  final ret = currentYearReturns[index];
-                  return GestureDetector(
-                      onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ReturnDetailsScreen(
-                                crop: ret, // ReturnsList object
-                                accent: widget.accent,
-                                primaryText: widget.primaryText,
-                                secondaryText: widget.secondaryText,
-                                scaffoldBg: widget.scaffoldBg,
-                                cardGradientStart: widget.cardGradientStart,
-                                cardGradientEnd: widget.cardGradientEnd,
-                                cardBorder: widget.cardBorder,
-                              ),
-                            ),
-                          );
-                      },
-                  child:  Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      gradient: LinearGradient(
-                        colors: [
-                          widget.cardGradientStart.withOpacity(0.3),
-                          widget.cardGradientEnd.withOpacity(0.2)
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
+
+              const SizedBox(height: 16),
+
+              // -------------------- Pie Chart --------------------
+              currentYearReturns.isEmpty
+                  ? _glassCardNoData("No returns to display")
+                  : Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  color: widget.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: widget.cardBorder),
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 220,
+                      child: PieChart(
+                        PieChartData(
+                          sections: _buildPieSections(currentYearReturns),
+                          centerSpaceRadius: 40,
+                          sectionsSpace: 2,
+                        ),
                       ),
-                      border: Border.all(color: widget.cardBorder),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // LEFT SIDE
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 6,
+                      children: currentYearReturns.map((ret) {
+                        final color = Colors.primaries[
+                        currentYearReturns.indexOf(ret) %
+                            Colors.primaries.length];
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              ret.cropName,
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: widget.primaryText),
+                            Container(
+                              width: 12,
+                              height: 12,
+                              color: color,
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(width: 6),
                             Text(
-                              "Total Production: ${ret.totalProduction}",
-                              style: TextStyle(color: widget.secondaryText),
+                              "${ret.cropName}: ₹${ret.totalReturns.toStringAsFixed(0)}",
+                              style: TextStyle(color: widget.primaryText),
                             ),
                           ],
-                        ),
+                        );
+                      }).toList(),
+                    )
+                  ],
+                ),
+              ),
 
-                        // RIGHT SIDE
+              const SizedBox(height: 20),
+
+              // -------------------- Total Returns Section --------------------
+              currentYearReturns.isEmpty
+                  ? _glassCardNoData("No returns to display")
+                  : Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    colors: [
+                      widget.cardGradientStart.withOpacity(0.1),
+                      widget.cardGradientEnd.withOpacity(0.05),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: widget.accent.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(Icons.savings, color: widget.accent, size: 28),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          "₹${ret.totalReturns}",
+                          "Total Returns",
                           style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: widget.accent,
-                          ),
+                              fontSize: 14,
+                              color: widget.secondaryText,
+                              fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "₹${totalReturn.toStringAsFixed(0)}",
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: widget.accent),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "in $_selectedYear",
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: widget.primaryText,
+                              fontWeight: FontWeight.w400),
                         ),
                       ],
+                    )
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // -------------------- Returns List --------------------
+              currentYearReturns.isEmpty
+                  ? _glassCardNoData("No returns to display")
+                  : Column(
+                children: currentYearReturns.map((ret) {
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReturnDetailsScreen(
+                            crop: ret,
+                            accent: widget.accent,
+                            primaryText: widget.primaryText,
+                            secondaryText: widget.secondaryText,
+                            scaffoldBg: widget.scaffoldBg,
+                            cardGradientStart: widget.cardGradientStart,
+                            cardGradientEnd: widget.cardGradientEnd,
+                            cardBorder: widget.cardBorder,
+                          ),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(20),
+                        gradient: LinearGradient(
+                          colors: [
+                            widget.cardGradientStart.withOpacity(0.1),
+                            widget.cardGradientEnd.withOpacity(0.05),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        border: Border.all(
+                            color: widget.cardBorder.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ret.cropName,
+                                style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: widget.primaryText),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                "Total Production: ${ret.totalProduction}",
+                                style: TextStyle(color: widget.secondaryText),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            "₹${ret.totalReturns.toStringAsFixed(0)}",
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: widget.accent),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                   );
-                },
+                }).toList(),
               ),
             ],
           ),
@@ -231,7 +397,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15), // frosted background
+              color: Colors.white.withOpacity(0.15),
               shape: BoxShape.circle,
               border: Border.all(
                 color: Colors.white.withOpacity(0.25),
@@ -239,8 +405,8 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
               ),
             ),
             child: FloatingActionButton(
-              elevation: 0, // keep flat for glass look
-              backgroundColor: Colors.transparent, // let frosted bg show
+              elevation: 0,
+              backgroundColor: Colors.transparent,
               mini: true,
               onPressed: () async {
                 final result = await Navigator.push(
@@ -259,21 +425,34 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                 );
                 if (result == true) _refreshCurrentYearReturns();
               },
-              child: const Icon(
-                Icons.create,
-                color: Colors.white,
-                size: 22,
-              ),
+              child: const Icon(Icons.create, color: Colors.white, size: 22),
             ),
           ),
         ),
       ),
-
     );
   }
 
-  Widget _buildBarChart(
-      Map<int, double> yearlyReturns, double maxY, List<int> lastFiveYears) {
+  // -------------------- Pie Chart Sections --------------------
+  List<PieChartSectionData> _buildPieSections(List<ReturnsList> returns) {
+    return returns.map((ret) {
+      final color = Colors.primaries[returns.indexOf(ret) % Colors.primaries.length];
+      return PieChartSectionData(
+        color: color,
+        value: ret.totalReturns,
+        radius: 70,
+        title: "₹${ret.totalReturns.toStringAsFixed(0)}",
+        titleStyle: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+          color: widget.primaryText,
+        ),
+      );
+    }).toList();
+  }
+
+  // -------------------- Bar Chart --------------------
+  Widget _buildBarChart(Map<int, double> yearlyReturns, double maxY, List<int> lastFiveYears) {
     return BarChart(
       BarChartData(
         maxY: maxY,
@@ -285,15 +464,14 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
             sideTitles: SideTitles(
               showTitles: true,
               reservedSize: 32,
+              interval: 1,
               getTitlesWidget: (value, meta) {
                 int index = value.toInt();
                 if (index < 0 || index >= lastFiveYears.length) return const SizedBox();
                 return Padding(
                   padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    lastFiveYears[index].toString(),
-                    style: TextStyle(color: widget.primaryText, fontSize: 12),
-                  ),
+                  child: Text(lastFiveYears[index].toString(),
+                      style: TextStyle(color: widget.primaryText, fontSize: 12)),
                 );
               },
             ),
@@ -335,8 +513,8 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
     );
   }
 
-  Widget _buildLineChart(
-      Map<int, double> yearlyReturns, double maxY, List<int> lastFiveYears) {
+  // -------------------- Line Chart --------------------
+  Widget _buildLineChart(Map<int, double> yearlyReturns, double maxY, List<int> lastFiveYears) {
     final spots = List.generate(lastFiveYears.length, (index) {
       int year = lastFiveYears[index];
       double value = yearlyReturns[year] ?? 0;
