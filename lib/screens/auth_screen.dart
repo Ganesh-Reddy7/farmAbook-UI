@@ -246,7 +246,7 @@ class _AuthScreenState extends State<AuthScreen>
             context,
             MaterialPageRoute(
               builder: (_) =>
-                  DashboardScreen(onToggleTheme: widget.toggleTheme),
+                  MainDashboardScreen(onToggleTheme: widget.toggleTheme),
             ),
           );
         } else {

@@ -15,6 +15,7 @@ class InvestmentsScreen extends StatefulWidget {
   final Color cardGradientStart;
   final Color cardGradientEnd;
   final Color cardBorder;
+  final VoidCallback? onDataChanged;
 
   const InvestmentsScreen({
     required this.accent,
@@ -24,6 +25,7 @@ class InvestmentsScreen extends StatefulWidget {
     required this.cardGradientStart,
     required this.cardGradientEnd,
     required this.cardBorder,
+    this.onDataChanged, // <-- add this
     Key? key,
   }) : super(key: key);
 
@@ -67,6 +69,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
 
   Future<void> _refreshCurrentYearInvestments() async {
     await _fetchInvestmentsForYear(_selectedYear, true);
+    if (widget.onDataChanged != null) {
+      widget.onDataChanged!();
+    }
   }
 
   double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;

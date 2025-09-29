@@ -9,6 +9,8 @@ class FrostedCardResponsive extends StatelessWidget {
   final Color gradientStart;
   final Color gradientEnd;
   final Color borderColor;
+  final IconData? leadingIcon; // optional icon
+  final Color? iconColor; // optional color for icon
 
   const FrostedCardResponsive({
     required this.title,
@@ -18,6 +20,8 @@ class FrostedCardResponsive extends StatelessWidget {
     required this.gradientStart,
     required this.gradientEnd,
     required this.borderColor,
+    this.leadingIcon,
+    this.iconColor,
     Key? key,
   }) : super(key: key);
 
@@ -28,7 +32,7 @@ class FrostedCardResponsive extends StatelessWidget {
 
     return Container(
       width: cardWidth,
-      height: 90,
+      constraints: const BoxConstraints(minHeight: 90, maxHeight: 120),
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
@@ -43,7 +47,9 @@ class FrostedCardResponsive extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Column(
+          child: leadingIcon == null
+          // No icon: center text
+              ? Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -54,6 +60,7 @@ class FrostedCardResponsive extends StatelessWidget {
                   fontWeight: FontWeight.w500,
                   color: secondaryText,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
               Text(
@@ -63,6 +70,47 @@ class FrostedCardResponsive extends StatelessWidget {
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: primaryText,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          )
+          // With icon: Row layout
+              : Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(
+                leadingIcon,
+                color: iconColor ?? primaryText,
+                size: 28, // fixed for consistency
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: secondaryText,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: primaryText,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
             ],

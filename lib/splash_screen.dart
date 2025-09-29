@@ -1,3 +1,4 @@
+import 'package:farmabook/screens/main_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'screens/auth_screen.dart';
@@ -36,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Preload next screen so there’s no white flash
     _nextScreen = widget.isLoggedIn
-        ? DashboardScreen(onToggleTheme: widget.toggleTheme)
+        ? MainDashboardScreen(onToggleTheme: widget.toggleTheme)
         : AuthScreen(toggleTheme: widget.toggleTheme);
 
     // Animation controllers

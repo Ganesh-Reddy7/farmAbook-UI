@@ -1,28 +1,39 @@
 import 'package:flutter/material.dart';
-
-import 'dashboard_screen.dart'; // import your existing screen
+import '../models/user.dart';
+import '../services/session_service.dart';
+import 'dashboard_screen.dart';
+import 'loanManagement/loan_management_screen.dart';
+import 'tractorTrack/tractor_screen.dart';
 
 class MainDashboardScreen extends StatefulWidget {
   final VoidCallback onToggleTheme;
   const MainDashboardScreen({required this.onToggleTheme, Key? key}) : super(key: key);
 
   @override
-  _MainDashboardScreenState createState() => _MainDashboardScreenState();
+  State<MainDashboardScreen> createState() => _MainDashboardScreenState();
 }
 
 class _MainDashboardScreenState extends State<MainDashboardScreen> {
   int _selectedIndex = 0;
-
-  late final List<Widget> _screens;
+  User? _user;
+  List<Widget> _screens = [];
 
   @override
   void initState() {
     super.initState();
-    _screens = [
-      DashboardTab(onToggleTheme: widget.onToggleTheme),
-      LoanManagementScreen(),
-      TractorScreen(),
-    ];
+    _loadUser();
+  }
+
+  void _loadUser() async {
+    User? user = await SessionService().getUser();
+    setState(() {
+      _user = user;
+      _screens = [
+        DashboardScreen(onToggleTheme: widget.onToggleTheme, user: _user),
+        const LoanManagementScreen(),
+        const TractorScreen(),
+      ];
+    });
   }
 
   void _onTabSelected(int index) {
@@ -33,12 +44,83 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
+    final Color primaryText = isDark ? Colors.white : Colors.black87;
     final Color secondaryText = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
+    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
 
     return Scaffold(
       backgroundColor: scaffoldBg,
-      body: _screens[_selectedIndex],
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: accent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.eco, color: scaffoldBg, size: 22),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "FarmAbook",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryText,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                "Welcome back${_user != null ? ', ${_user!.username}' : ''}!",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: secondaryText,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(Icons.brightness_6, color: primaryText.withOpacity(0.9)),
+                        onPressed: widget.onToggleTheme,
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.person, color: primaryText.withOpacity(0.9)),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _screens.isNotEmpty ? _screens[_selectedIndex] : const Center(child: CircularProgressIndicator()),
+            ),
+          ],
+        ),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         backgroundColor: scaffoldBg,
@@ -46,46 +128,11 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
         unselectedItemColor: secondaryText,
         onTap: _onTabSelected,
         items: const [
-          BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_rounded), label: "Summary"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.add_circle_outline), label: "Loan Management"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.attach_money), label: "Tractor"),
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: "Dashboard"),
+          BottomNavigationBarItem(icon: Icon(Icons.account_balance), label: "Loan Management"),
+          BottomNavigationBarItem(icon: Icon(Icons.agriculture), label: "Tractor"),
         ],
       ),
     );
-  }
-}
-
-class DashboardTab extends StatelessWidget {
-  final VoidCallback onToggleTheme;
-  const DashboardTab({required this.onToggleTheme, Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return DashboardScreen(onToggleTheme: onToggleTheme);
-  }
-}
-
-class LoanManagementScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-        child: Text(
-          "Loan Management Screen",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ));
-  }
-}
-
-class TractorScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-        child: Text(
-          "Tractor Screen",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ));
   }
 }

@@ -15,6 +15,7 @@ class ReturnsScreen extends StatefulWidget {
   final Color cardGradientStart;
   final Color cardGradientEnd;
   final Color cardBorder;
+  final VoidCallback? onDataChanged;
 
   const ReturnsScreen({
     required this.accent,
@@ -24,6 +25,8 @@ class ReturnsScreen extends StatefulWidget {
     required this.cardGradientStart,
     required this.cardGradientEnd,
     required this.cardBorder,
+    this.onDataChanged, // <-- add this
+
     Key? key,
   }) : super(key: key);
 
@@ -61,6 +64,10 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
 
   Future<void> _refreshCurrentYearReturns() async {
     await _fetchReturnsForYear(_selectedYear);
+    // Notify parent (DashboardScreen) to refresh top cards
+    if (widget.onDataChanged != null) {
+      widget.onDataChanged!();
+    }
   }
 
   double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
