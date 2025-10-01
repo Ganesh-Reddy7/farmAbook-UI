@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../models/user.dart';
 import '../services/reports_service.dart';
 import '../widgets/frosted_card.dart';
@@ -22,6 +23,8 @@ class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   Map<String, dynamic>? _reportData;
   late TabController _tabController;
+
+  final NumberFormat _formatter = NumberFormat("#,##,###"); // Indian number format
 
   @override
   void initState() {
@@ -80,25 +83,24 @@ class _DashboardScreenState extends State<DashboardScreen>
     (_reportData?['totalReturns'] ?? 0).toDouble();
     final double profitLossPercentage =
     totalInvestment > 0 ? (profitOrLoss / totalInvestment) * 100 : 0;
-    final Color profitLossColor =
-    profitOrLoss >= 0 ? Colors.green : Colors.red;
+    final Color profitLossColor = profitOrLoss >= 0 ? Colors.green : Colors.red;
 
     final cardData = [
       {
         'title': 'Profit/Loss',
-        'value': "₹${profitOrLoss.toStringAsFixed(2)}",
+        'value': "₹${_formatter.format(profitOrLoss)}",
         'color': profitLossColor,
         'icon': Icons.trending_up,
       },
       {
         'title': 'Investments',
-        'value': "₹${totalInvestment.toStringAsFixed(2)}",
+        'value': "₹${_formatter.format(totalInvestment)}",
         'color': accent,
         'icon': Icons.account_balance_wallet,
       },
       {
         'title': 'Returns',
-        'value': "₹${totalReturns.toStringAsFixed(2)}",
+        'value': "₹${_formatter.format(totalReturns)}",
         'color': Colors.blue,
         'icon': Icons.attach_money,
       },
@@ -112,7 +114,6 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     return Column(
       children: [
-        // Top cards
         const SizedBox(height: 8),
         SizedBox(
           height: 85,
@@ -120,24 +121,25 @@ class _DashboardScreenState extends State<DashboardScreen>
             scrollDirection: Axis.horizontal,
             itemCount: cardData.length,
             separatorBuilder: (_, __) => const SizedBox(width: 14),
-            padding: const EdgeInsets.symmetric(horizontal: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) {
               final item = cardData[index];
-              return FrostedCardResponsive(
-                title: item['title'] as String,
-                value: item['value'] as String,
-                primaryText: item['color'] as Color,
-                secondaryText: secondaryText,
-                gradientStart: cardGradientStart,
-                gradientEnd: cardGradientEnd,
-                borderColor: cardBorder,
-                leadingIcon: item['icon'] as IconData, // ✅ added icon
+              return SizedBox(
+                width: 160,
+                  child: FrostedCardResponsive(
+                    title: item['title'] as String,
+                    value: item['value'] as String,
+                    primaryText: item['color'] as Color,
+                    secondaryText: secondaryText,
+                    gradientStart: cardGradientStart,
+                    gradientEnd: cardGradientEnd,
+                    borderColor: cardBorder,
+                    leadingIcon: item['icon'] as IconData,
+                  ),
               );
             },
           ),
         ),
-
-        // Tabs
         TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -152,7 +154,6 @@ class _DashboardScreenState extends State<DashboardScreen>
             Tab(text: "Crops"),
           ],
         ),
-
         Expanded(
           child: TabBarView(
             controller: _tabController,
