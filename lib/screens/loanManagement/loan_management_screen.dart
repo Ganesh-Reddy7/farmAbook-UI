@@ -122,7 +122,11 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  SummaryScreen(),
+                  SummaryScreen(
+                    onSeeAllLent: () => _tabController.animateTo(1),
+                    onSeeAllDebt: () => _tabController.animateTo(2),
+                    onSeeAllMaturity: () => _tabController.animateTo(3),
+                  ),
                   LentScreen(),
                   DebtScreen(),
                   MaturityBondsScreen(),

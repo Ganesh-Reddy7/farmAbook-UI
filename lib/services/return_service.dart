@@ -11,7 +11,7 @@ import '../models/yearly_summary.dart';
 
 class ReturnService {
   // Sample data
-  final String baseUrl = "http://10.249.31.202:8080/api";
+  final String baseUrl = "http://10.205.90.202:8080/api";
 
   final List<ReturnModel> _sampleReturns = [
     ReturnModel(year: 2019, description: "Wheat Sale", date: DateTime(2019, 3, 5), amount: 4000 ,quantity: 1),

@@ -139,6 +139,7 @@ class _TractorScreenState extends State<TractorScreen>
                 Tab(text: "Summary"),
                 Tab(text: "Expenses"),
                 Tab(text: "Returns"),
+                Tab(text: "Tractor"),
               ],
             ),
 

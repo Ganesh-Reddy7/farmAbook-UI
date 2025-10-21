@@ -7,7 +7,7 @@ import '../models/user.dart';
 
 class AuthService {
   // Replace with your laptop IP and backend port
-  final String baseUrl = "http://10.249.31.202:8080/api";
+  final String baseUrl = "http://10.205.90.202:8080/api";
 
   /// LOGIN
   Future<bool> login(String phone, String password) async {

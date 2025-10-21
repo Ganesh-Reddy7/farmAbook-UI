@@ -50,7 +50,7 @@ class _DebtScreenState extends State<DebtScreen> {
         temp = allDebts.where((loan) => loan.isClosed == true).toList();
         break;
       case LoanFilter.nearMaturity:
-        temp = allDebts.where((loan) => loan.nearMaturity == true).toList();
+        temp = allDebts.where((loan) => loan.nearMaturity == true && loan.isClosed == false).toList();
         break;
     }
 
@@ -114,7 +114,7 @@ class _DebtScreenState extends State<DebtScreen> {
   int get activeCount => allDebts.where((e) => e.isClosed != true).length;
   int get closedCount => allDebts.where((e) => e.isClosed == true).length;
   int get nearMaturityCount =>
-      allDebts.where((e) => e.nearMaturity == true).length;
+      allDebts.where((e) => e.nearMaturity == true && e.isClosed == false).length;
 
   Future<void> _refreshDebts() async => fetchDebts();
 
@@ -201,7 +201,7 @@ class _DebtScreenState extends State<DebtScreen> {
                 }, Colors.orangeAccent),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
             // Search
             SizedBox(
@@ -238,85 +238,93 @@ class _DebtScreenState extends State<DebtScreen> {
 
             const SizedBox(height: 12),
 
-            // Row: Sort + Cyclic Amount Toggle
+            // Row: Minimal Sort + Amount Toggle
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Sort Dropdown
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    height: 40,
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white12,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white54),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<LoanSort>(
-                        dropdownColor: Colors.grey[900],
-                        value: selectedSort,
-                        hint: Row(
-                          children: const [
-                            Icon(Icons.sort, color: Colors.white70, size: 20),
-                            SizedBox(width: 8),
-                            Text(
-                              "Sort",
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ],
-                        ),
-                        isExpanded: true,
-                        icon: const Icon(Icons.arrow_drop_down, color: Colors.white70),
-                        items: LoanSort.values.map((sort) {
-                          return DropdownMenuItem(
-                            value: sort,
-                            child: Text(
+                // Sort Button (Left Edge)
+                GestureDetector(
+                  onTap: () async {
+                    final selected = await showModalBottomSheet<LoanSort>(
+                      context: context,
+                      backgroundColor: Colors.grey[900],
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      ),
+                      builder: (_) => Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: LoanSort.values.map((sort) {
+                          return ListTile(
+                            leading: const Icon(Icons.sort, color: Colors.white70),
+                            title: Text(
                               selectedSortLabel(sort),
                               style: const TextStyle(color: Colors.white),
                             ),
+                            onTap: () => Navigator.pop(context, sort),
                           );
                         }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            selectedSort = val;
-                            applyFilter();
-                          });
-                        },
                       ),
+                    );
+                    if (selected != null) {
+                      setState(() {
+                        selectedSort = selected;
+                        applyFilter();
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.sort, color: Colors.white70, size: 20),
+                        const SizedBox(width: 6),
+                        Text(
+                          selectedSort != null ? selectedSortLabel(selectedSort!) : "Sort",
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ),
                 ),
 
-                SizedBox(width: 8),
-
-                // Cyclic Amount Toggle
-                Expanded(
-                  flex: 1,
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        final currentIndex = AmountType.values.indexOf(selectedAmountType);
-                        final nextIndex = (currentIndex + 1) % AmountType.values.length;
-                        selectedAmountType = AmountType.values[nextIndex];
-                      });
-                    },
-                    child: Container(
-                      height: 40,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: accent),
-                      ),
-                      child: Text(
-                        getAmountLabel(),
-                        style: TextStyle(color: accent, fontWeight: FontWeight.bold),
-                      ),
+                // Amount Type Toggle (Right Edge)
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      final currentIndex =
+                      AmountType.values.indexOf(selectedAmountType);
+                      final nextIndex =
+                          (currentIndex + 1) % AmountType.values.length;
+                      selectedAmountType = AmountType.values[nextIndex];
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.swap_horiz, color: Colors.white70, size: 20),
+                        const SizedBox(width: 6),
+                        Text(
+                          getAmountLabel(),
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ],
             ),
+
 
             const SizedBox(height: 12),
 

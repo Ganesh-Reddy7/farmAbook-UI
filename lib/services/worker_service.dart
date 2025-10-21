@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 class WorkerService {
-  String baseUrl = "http://10.249.31.202:8080/api";
+  String baseUrl = "http://10.205.90.202:8080/api";
 
   /// Toggle payment status (paid ↔ unpaid)
   Future<Worker?> updateWorkerPayment(int workerId, bool newStatus) async {

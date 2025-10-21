@@ -7,7 +7,7 @@ import '../models/user.dart';
 import 'session_service.dart';
 
 class ReportsService {
-  final String baseUrl = "http://10.249.31.202:8080/api/";
+  final String baseUrl = "http://10.205.90.202:8080/api/";
 
   /// Get report data for top cards and tab content
   Future<Map<String, dynamic>?> getReports({required User farmer, required int year}) async {

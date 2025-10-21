@@ -4,7 +4,7 @@ import '../../../services/loan_service.dart';
 import '../../../widgets/FrostedInput.dart';
 
 class AddLoanScreen extends StatefulWidget {
-  final bool isGiven; // true = Lent, false = Debt
+  final bool isGiven;
 
   const AddLoanScreen({Key? key, required this.isGiven}) : super(key: key);
 
@@ -178,7 +178,14 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: const Text("Add", style: TextStyle(fontSize: 16)),
+                            child: Text(
+                              "Add",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white, // change this to what you want
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],
