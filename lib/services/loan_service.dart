@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:ffi';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 
@@ -9,7 +10,7 @@ import '../models/PaymentHistoryDTO.dart';
 import '../models/lentDto.dart';
 
 class LoanService {
-  final String baseUrl = "http://10.205.90.202:8080/api";
+  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
   Future<bool> addLentLoan({
     required String source,

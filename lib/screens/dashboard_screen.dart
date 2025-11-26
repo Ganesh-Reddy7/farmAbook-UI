@@ -23,8 +23,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     with TickerProviderStateMixin {
   Map<String, dynamic>? _reportData;
   late TabController _tabController;
-
-  final NumberFormat _formatter = NumberFormat("#,##,###"); // Indian number format
+  final NumberFormat _formatter = NumberFormat("#,##,###");
 
   @override
   void initState() {
@@ -50,13 +49,9 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _refreshReports() async {
     if (widget.user != null) {
       int year = _getFinancialYear();
-      Map<String, dynamic>? data = await ReportsService().getReports(
-        farmer: widget.user!,
-        year: year,
-      );
-      setState(() {
-        _reportData = data;
-      });
+      Map<String, dynamic>? data =
+      await ReportsService().getReports(farmer: widget.user!, year: year);
+      setState(() => _reportData = data);
     }
   }
 
@@ -69,18 +64,13 @@ class _DashboardScreenState extends State<DashboardScreen>
     isDark ? Colors.grey.shade300 : Colors.grey.shade700;
     final Color accent =
     isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
-    final Color cardGradientStart =
-    isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.03);
-    final Color cardGradientEnd =
-    isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01);
     final Color cardBorder =
     isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
 
     final double profitOrLoss = (_reportData?['profitOrLoss'] ?? 0).toDouble();
     final double totalInvestment =
     (_reportData?['totalInvestment'] ?? 0).toDouble();
-    final double totalReturns =
-    (_reportData?['totalReturns'] ?? 0).toDouble();
+    final double totalReturns = (_reportData?['totalReturns'] ?? 0).toDouble();
     final double profitLossPercentage =
     totalInvestment > 0 ? (profitOrLoss / totalInvestment) * 100 : 0;
     final Color profitLossColor = profitOrLoss >= 0 ? Colors.green : Colors.red;
@@ -115,31 +105,39 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       children: [
         const SizedBox(height: 8),
+
+        // 🔹 Wider & softly tinted summary cards
         SizedBox(
-          height: 85,
+          height: 70,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: cardData.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) {
               final item = cardData[index];
+              final Color shadeColor =
+              (item['color'] as Color).withOpacity(isDark ? 0.15 : 0.10);
+
               return SizedBox(
-                width: 160,
-                  child: FrostedCardResponsive(
-                    title: item['title'] as String,
-                    value: item['value'] as String,
-                    primaryText: item['color'] as Color,
-                    secondaryText: secondaryText,
-                    gradientStart: cardGradientStart,
-                    gradientEnd: cardGradientEnd,
-                    borderColor: cardBorder,
-                    leadingIcon: item['icon'] as IconData,
-                  ),
+                width: 190,
+                child: FrostedCardResponsive(
+                  title: item['title'] as String,
+                  value: item['value'] as String,
+                  primaryText: item['color'] as Color,
+                  secondaryText: secondaryText,
+                  gradientStart: shadeColor, // 💡 color-matched gradient
+                  gradientEnd: shadeColor.withOpacity(0.03),
+                  borderColor: cardBorder,
+                  leadingIcon: item['icon'] as IconData,
+                ),
               );
             },
           ),
         ),
+
+        const SizedBox(height: 12),
+
         TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -154,6 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             Tab(text: "Crops"),
           ],
         ),
+
         Expanded(
           child: TabBarView(
             controller: _tabController,
@@ -163,8 +162,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 primaryText: primaryText,
                 secondaryText: secondaryText,
                 scaffoldBg: scaffoldBg,
-                cardGradientStart: cardGradientStart,
-                cardGradientEnd: cardGradientEnd,
+                cardGradientStart: Colors.transparent,
+                cardGradientEnd: Colors.transparent,
                 cardBorder: cardBorder,
               ),
               InvestmentsScreen(
@@ -172,8 +171,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 primaryText: primaryText,
                 secondaryText: secondaryText,
                 scaffoldBg: scaffoldBg,
-                cardGradientStart: cardGradientStart,
-                cardGradientEnd: cardGradientEnd,
+                cardGradientStart: Colors.transparent,
+                cardGradientEnd: Colors.transparent,
                 cardBorder: cardBorder,
                 onDataChanged: _refreshReports,
               ),
@@ -182,8 +181,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 primaryText: primaryText,
                 secondaryText: secondaryText,
                 scaffoldBg: scaffoldBg,
-                cardGradientStart: cardGradientStart,
-                cardGradientEnd: cardGradientEnd,
+                cardGradientStart: Colors.transparent,
+                cardGradientEnd: Colors.transparent,
                 cardBorder: cardBorder,
                 onDataChanged: _refreshReports,
               ),
@@ -192,8 +191,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                 primaryText: primaryText,
                 secondaryText: secondaryText,
                 scaffoldBg: scaffoldBg,
-                cardGradientStart: cardGradientStart,
-                cardGradientEnd: cardGradientEnd,
+                cardGradientStart: Colors.transparent,
+                cardGradientEnd: Colors.transparent,
                 cardBorder: cardBorder,
               ),
             ],

@@ -39,10 +39,10 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color primaryText = isDark ? Colors.white : Colors.black87;
     final Color secondaryText =
     isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
+    final Color accent =
+    isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
     final Color cardGradientStart =
     isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.03);
     final Color cardGradientEnd =
@@ -78,8 +78,9 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 🔹 Compact but Wider Summary Cards
             SizedBox(
-              height: 85,
+              height: 70, // reduced height
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -88,7 +89,7 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
                 itemBuilder: (context, index) {
                   final item = cardData[index];
                   return SizedBox(
-                    width: 180,
+                    width: 190, // ⬆️ increased width for better layout
                     child: FrostedCardResponsive(
                       title: item['title'] as String,
                       value: item['value'] as String,
@@ -103,7 +104,7 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
                 },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TabBar(
               controller: _tabController,
               labelColor: accent,

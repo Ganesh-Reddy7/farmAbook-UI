@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'package:farmabook/models/crop.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/yearly_summary.dart';
@@ -9,7 +10,7 @@ import '../models/crop.dart';
 
 class InvestmentService {
   // Base URL from your backend
-  final String baseUrl = "http://10.205.90.202:8080/api";
+  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
   /// Save single investment
   Future<bool> saveInvestment({

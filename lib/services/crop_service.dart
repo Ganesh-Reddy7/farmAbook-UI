@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'dart:developer';
-import 'dart:ffi';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/crop.dart';
 import '../models/investment.dart';
 
 class CropService {
-  final String baseUrl = "http://10.205.90.202:8080/api"; // replace with your API base URL
+  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
   /// Fetch list of crops for the current farmer
   Future<List<Crop>> getCrops() async {
@@ -186,7 +186,6 @@ class CropService {
     required int cropId,
   }) async {
     try {
-      log("Get Crops");
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString("auth_token");
       final userData = prefs.getString("user_data");

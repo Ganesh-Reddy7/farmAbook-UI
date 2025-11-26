@@ -1,6 +1,10 @@
+import 'package:farmabook/screens/dashboard/investments_screen.dart';
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import '../../widgets/frosted_card.dart'; // FrostedCardResponsive
+import '../../widgets/frosted_card.dart';
+import 'tractor_summary_screen.dart';
+import 'tractor_expenses_screen.dart';
+import 'tractor_returns_screen.dart';
+import 'tractor_details_screen.dart';
 
 class TractorScreen extends StatefulWidget {
   const TractorScreen({Key? key}) : super(key: key);
@@ -13,7 +17,6 @@ class _TractorScreenState extends State<TractorScreen>
     with TickerProviderStateMixin {
   late TabController _tabController;
 
-  // Sample tractor data (multiple tractors)
   final List<Map<String, dynamic>> tractors = [
     {'name': "Tractor 1", 'expenses': 20000.0, 'returns': 30000.0},
     {'name': "Tractor 2", 'expenses': 15000.0, 'returns': 18000.0},
@@ -22,7 +25,7 @@ class _TractorScreenState extends State<TractorScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
   }
 
   @override
@@ -35,7 +38,6 @@ class _TractorScreenState extends State<TractorScreen>
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color primaryText = isDark ? Colors.white : Colors.black87;
     final Color secondaryText =
     isDark ? Colors.grey.shade300 : Colors.grey.shade700;
     final Color accent =
@@ -47,7 +49,6 @@ class _TractorScreenState extends State<TractorScreen>
     final Color cardBorder =
     isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
 
-    // Aggregate totals
     final double totalExpenses =
     tractors.fold(0.0, (sum, t) => sum + (t['expenses'] as double));
     final double totalReturns =
@@ -90,38 +91,85 @@ class _TractorScreenState extends State<TractorScreen>
           children: [
             const SizedBox(height: 8),
 
-            // Responsive Top Cards (Totals)
+            // --- Compact Top Summary Cards ---
             SizedBox(
-              height: 90,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  int cardsPerScreen =
-                  cardData.length >= 2 ? 2 : cardData.length;
-                  double cardWidth = (constraints.maxWidth -
-                      ((cardsPerScreen + 1) * 16)) /
-                      cardsPerScreen;
-
-                  return ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    separatorBuilder: (_, __) => const SizedBox(width: 16),
-                    itemCount: cardData.length,
-                    itemBuilder: (context, index) {
-                      final item = cardData[index];
-                      return SizedBox(
-                        width: cardWidth,
-                        child: FrostedCardResponsive(
-                          title: item['title'] as String,
-                          value: item['value'] as String,
-                          primaryText: item['color'] as Color,
-                          secondaryText: secondaryText,
-                          gradientStart: cardGradientStart,
-                          gradientEnd: cardGradientEnd,
-                          borderColor: cardBorder,
-                          leadingIcon: item['icon'] as IconData,
+              height: 70, // reduced height (was 80)
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemCount: cardData.length,
+                itemBuilder: (context, index) {
+                  final item = cardData[index];
+                  return Container(
+                    width: 140, // slightly narrower too
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      gradient: LinearGradient(
+                        colors: [
+                          (item['color'] as Color).withOpacity(0.08),
+                          (item['color'] as Color).withOpacity(0.02),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      border: Border.all(
+                        color: (item['color'] as Color).withOpacity(0.18),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: (item['color'] as Color).withOpacity(0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         ),
-                      );
-                    },
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: (item['color'] as Color).withOpacity(0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            item['icon'] as IconData,
+                            color: item['color'] as Color,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item['title'] as String,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: secondaryText,
+                                  fontWeight: FontWeight.w500,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const SizedBox(height: 1),
+                              Text(
+                                item['value'] as String,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  color: item['color'] as Color,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   );
                 },
               ),
@@ -133,8 +181,10 @@ class _TractorScreenState extends State<TractorScreen>
             TabBar(
               controller: _tabController,
               labelColor: accent,
+              isScrollable: true,
               unselectedLabelColor: secondaryText,
               indicatorColor: accent,
+              tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(text: "Summary"),
                 Tab(text: "Expenses"),
@@ -143,65 +193,21 @@ class _TractorScreenState extends State<TractorScreen>
               ],
             ),
 
+            // Tab Views
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildSummaryTab(primaryText),
-                  _buildExpensesTab(primaryText),
-                  _buildReturnsTab(primaryText),
+                  TractorSummaryScreen(tractors: tractors),
+                  TractorExpensesScreen(tractors: tractors),
+                  TractorReturnsScreen(tractors: tractors),
+                  TractorDetailsScreen(),
                 ],
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSummaryTab(Color textColor) {
-    return Center(
-      child: Text(
-        "Tractor Summary (all tractors)",
-        style: TextStyle(
-            fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
-      ),
-    );
-  }
-
-  Widget _buildExpensesTab(Color textColor) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: tractors.length,
-      itemBuilder: (context, index) {
-        final t = tractors[index];
-        return ListTile(
-          title: Text(
-            t['name'],
-            style: TextStyle(
-                fontWeight: FontWeight.bold, color: textColor, fontSize: 16),
-          ),
-          subtitle: Text("Expenses: ₹${t['expenses']}"),
-        );
-      },
-    );
-  }
-
-  Widget _buildReturnsTab(Color textColor) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: tractors.length,
-      itemBuilder: (context, index) {
-        final t = tractors[index];
-        return ListTile(
-          title: Text(
-            t['name'],
-            style: TextStyle(
-                fontWeight: FontWeight.bold, color: textColor, fontSize: 16),
-          ),
-          subtitle: Text("Returns: ₹${t['returns']}"),
-        );
-      },
     );
   }
 }

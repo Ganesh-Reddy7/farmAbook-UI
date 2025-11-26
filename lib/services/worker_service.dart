@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/investment.dart';
 import 'session_service.dart'; // Make sure you have this service to get the token
@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 
 class WorkerService {
-  String baseUrl = "http://10.205.90.202:8080/api";
+  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
   /// Toggle payment status (paid ↔ unpaid)
   Future<Worker?> updateWorkerPayment(int workerId, bool newStatus) async {

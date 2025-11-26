@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:developer';
 import 'dart:ffi';
 import 'dart:io';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/crop.dart';
 import '../models/return_model.dart';
@@ -11,7 +12,7 @@ import '../models/yearly_summary.dart';
 
 class ReturnService {
   // Sample data
-  final String baseUrl = "http://10.205.90.202:8080/api";
+  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
   final List<ReturnModel> _sampleReturns = [
     ReturnModel(year: 2019, description: "Wheat Sale", date: DateTime(2019, 3, 5), amount: 4000 ,quantity: 1),

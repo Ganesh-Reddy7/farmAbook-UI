@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:developer';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import '../models/user.dart';
 
 class AuthService {
   // Replace with your laptop IP and backend port
-  final String baseUrl = "http://10.205.90.202:8080/api";
+  final String? baseUrl = dotenv.env['API_BASE_URL'];
 
   /// LOGIN
   Future<bool> login(String phone, String password) async {

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/CropData.dart';
 import '../models/SummaryData.dart';
@@ -7,7 +8,7 @@ import '../models/user.dart';
 import 'session_service.dart';
 
 class ReportsService {
-  final String baseUrl = "http://10.205.90.202:8080/api/";
+  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
   /// Get report data for top cards and tab content
   Future<Map<String, dynamic>?> getReports({required User farmer, required int year}) async {
@@ -16,7 +17,7 @@ class ReportsService {
       if (token == null) return null;
 
       final response = await http.post(
-        Uri.parse("${baseUrl}reports/farmer/yearly?farmerId=${farmer.farmerId}&year=$year"),
+        Uri.parse("${baseUrl}/reports/farmer/yearly?farmerId=${farmer.farmerId}&year=$year"),
         headers: {
           "Content-Type": "application/json",
           "Authorization": "Bearer $token",
@@ -46,7 +47,7 @@ class ReportsService {
 
       final response = await http.get(
         Uri.parse(
-          "${baseUrl}reports/farmer/$farmerId/overview?lastYears=$year",
+          "${baseUrl}/reports/farmer/$farmerId/overview?lastYears=$year",
         ),
         headers: {
           "Content-Type": "application/json",
