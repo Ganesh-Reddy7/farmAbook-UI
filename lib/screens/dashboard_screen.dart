@@ -105,8 +105,7 @@ class _DashboardScreenState extends State<DashboardScreen>
     return Column(
       children: [
         const SizedBox(height: 8),
-
-        // 🔹 Wider & softly tinted summary cards
+        //  Wider & softly tinted summary cards
         SizedBox(
           height: 70,
           child: ListView.separated(
@@ -116,9 +115,7 @@ class _DashboardScreenState extends State<DashboardScreen>
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemBuilder: (context, index) {
               final item = cardData[index];
-              final Color shadeColor =
-              (item['color'] as Color).withOpacity(isDark ? 0.15 : 0.10);
-
+              final Color shadeColor = (item['color'] as Color).withOpacity(isDark ? 0.15 : 0.10);
               return SizedBox(
                 width: 190,
                 child: FrostedCardResponsive(
@@ -126,7 +123,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                   value: item['value'] as String,
                   primaryText: item['color'] as Color,
                   secondaryText: secondaryText,
-                  gradientStart: shadeColor, // 💡 color-matched gradient
+                  gradientStart: shadeColor,
                   gradientEnd: shadeColor.withOpacity(0.03),
                   borderColor: cardBorder,
                   leadingIcon: item['icon'] as IconData,
@@ -135,16 +132,16 @@ class _DashboardScreenState extends State<DashboardScreen>
             },
           ),
         ),
-
-        const SizedBox(height: 12),
-
+        // const SizedBox(height: 12),
         TabBar(
           controller: _tabController,
           isScrollable: true,
+          tabAlignment: TabAlignment.start,
           labelColor: accent,
           unselectedLabelColor: secondaryText,
           indicatorColor: accent,
-          tabAlignment: TabAlignment.start,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 0),
+
           tabs: const [
             Tab(text: "Summary"),
             Tab(text: "Investments"),

@@ -309,11 +309,6 @@ class TractorService {
   Future<http.Response> addClosePayment({required int activityId , required double paymentAmount}) async {
     final auth = await _loadAuth();
     final url = Uri.parse("$baseUrl/tractor-activities/add-payment?activityId=$activityId&paymentAmount=$paymentAmount");
-    // final body = {
-    //   "activityId": activityId,
-    //   "paymentAmount": paymentAmount,
-    // };
-    // log("Adding Payment ⇒ ${jsonEncode(body)}");
     try {
       final response = await http.post(
         url,
@@ -329,6 +324,69 @@ class TractorService {
       throw Exception("❌ Network error while adding client: $e");
     }
   }
+
+  Future<List<Map<String, dynamic>>> getYearlyExpenses({required int startYear, required int endYear}) async {
+    log("Here");
+    final auth = await _loadAuth();
+    final dynamic farmerIdRaw = auth["farmerId"];
+    final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
+    final url = Uri.parse("$baseUrl/tractor-expenses/expense-trend-range?farmerId=$farmerId&startYear=$startYear&endYear=$endYear");
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception("Failed: ${response.body}");
+      }
+      final decoded = jsonDecode(response.body);
+      final yearly = decoded["yearlyData"] as List<dynamic>? ?? [];
+      return yearly.map<Map<String, dynamic>>((raw) {
+        return {
+          "year": int.tryParse(raw["year"].toString()) ?? 0,
+          "totalYearExpense":
+          double.tryParse(raw["totalYearExpense"].toString()) ?? 0.0,
+          "monthlyExpenses": raw["monthlyExpenses"] ?? [],
+        };
+      }).toList();
+    } catch (e) {
+      throw Exception("❌ Yearly expenses load error: $e");
+    }
+  }
+
+  Future<Map<String, int>> getExpenseSummary() async {
+    final auth = await _loadAuth();
+    final farmerId = int.tryParse(auth["farmerId"]?.toString() ?? "0") ?? 0;
+    final url = Uri.parse("$baseUrl/tractor-expenses/farmer/$farmerId/summary");
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+
+        return {
+          "fuelExpense": (decoded["fuelExpense"] ?? 0).toInt(),
+          "repairExpense": (decoded["repairExpense"] ?? 0).toInt(),
+          "otherExpense": (decoded["otherExpense"] ?? 0).toInt(),
+          "totalExpense": (decoded["totalExpense"] ?? 0).toInt(),
+        };
+      } else {
+        throw Exception("Failed: ${response.body}");
+      }
+    } catch (e) {
+      throw Exception("❌ Expense summary load error: $e");
+    }
+  }
+
+
 
 
 }

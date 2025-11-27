@@ -1,32 +1,91 @@
+import 'dart:developer';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../../services/TractorService/tractor_service.dart';
 import 'add_entities/add_expense.dart';
 
-class TractorExpensesScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> tractors;
-  const TractorExpensesScreen({Key? key, required this.tractors}) : super(key: key);
+class TractorExpensesScreen extends StatefulWidget {
+  const TractorExpensesScreen({Key? key}) : super(key: key);
+
+  @override
+  State<TractorExpensesScreen> createState() => _TractorExpensesScreenState();
+}
+
+class _TractorExpensesScreenState extends State<TractorExpensesScreen> {
+  final tractorService = TractorService();
+
+  List<Map<String, dynamic>> tractors = [];
+  bool isLoading = true;
+
+  List<double> chartValues = [];
+  List<int> chartYears = [];
+  int totalInvestment = 0;
+  int totalFuel = 0;
+  int totalRepair = 0;
+  int totalOther = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _initMethods();
+  }
+
+  void _initMethods(){
+    _loadChartData();
+    _getSummaryData();
+  }
+
+  Future<void> _getSummaryData() async {
+    setState(() => isLoading = true);
+    try{
+      final data = await tractorService.getExpenseSummary();
+      totalInvestment = data["totalExpense"]!;
+      totalFuel = data["fuelExpense"]!;
+      totalRepair = data["repairExpense"]!;
+      totalOther = data["otherExpense"]!;
+    }catch(e){
+      debugPrint("Error loading expense Summary data: $e");
+    }
+  }
+
+  Future<void> _loadChartData() async {
+    setState(() => isLoading = true);
+
+    try {
+      int currentYear = DateTime.now().year;
+      int startYear = currentYear - 5;
+
+      final yearlyList = await tractorService.getYearlyExpenses(
+        startYear: startYear,
+        endYear: currentYear,
+      );
+
+      chartYears = yearlyList.map<int>((y) => y["year"]).toList();
+      chartValues =
+          yearlyList.map<double>((y) => y["totalYearExpense"]).toList();
+    } catch (e) {
+      debugPrint("Error loading chart data: $e");
+    }
+
+    setState(() => isLoading = false);
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark; // ✅ inverted
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
+    final isDark = theme.brightness != Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
     final colors = _AppColors(isDark);
 
-    // Calculate summary totals
-    double totalInvestment = 0;
-    double totalFuel = 0;
-    double totalRepair = 0;
-    double totalOther = 0;
-
-    for (var t in tractors) {
-      final monthlyExpenses = List<Map<String, dynamic>>.from(t['monthlyExpenses'] ?? []);
-      for (var m in monthlyExpenses) {
-        totalFuel += (m['fuel'] ?? 0);
-        totalRepair += (m['repair'] ?? 0);
-        totalOther += (m['other'] ?? 0);
-      }
-      totalInvestment += t['investment'] ?? 0;
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: scaffoldBg,
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.green),
+        ),
+      );
     }
 
     return Scaffold(
@@ -37,15 +96,19 @@ class TractorExpensesScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // -------------------- Yearly Investment Graph --------------------
               _SectionTitle(title: "Yearly Investment (₹)", isDark: isDark),
               const SizedBox(height: 12),
-              _InvestmentChart(isDark: isDark, chartBg: colors.card),
+
+              _InvestmentChart(
+                isDark: isDark,
+                chartBg: colors.card,
+                years: chartYears,
+                values: chartValues,
+              ),
 
               const SizedBox(height: 24),
 
-              // -------------------- Info Cards Row --------------------
-              // -------------------- Info Cards Row --------------------
+              // -------------------- INFO CARDS --------------------
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Row(
@@ -57,7 +120,7 @@ class TractorExpensesScreen extends StatelessWidget {
                         iconColor: Colors.blueAccent,
                         backgroundColor: Colors.blueAccent.withOpacity(0.2),
                         label: "Investment",
-                        value: "₹${totalInvestment.toStringAsFixed(0)}",
+                        value: "₹${formatIndianNumber(totalInvestment)}",
                         textColor: colors.text,
                       ),
                     ),
@@ -68,7 +131,7 @@ class TractorExpensesScreen extends StatelessWidget {
                         iconColor: Colors.orange,
                         backgroundColor: Colors.orange.withOpacity(0.2),
                         label: "Fuel",
-                        value: "₹${totalFuel.toStringAsFixed(0)}",
+                        value: "₹${formatIndianNumber(totalFuel)}",
                         textColor: colors.text,
                       ),
                     ),
@@ -79,7 +142,7 @@ class TractorExpensesScreen extends StatelessWidget {
                         iconColor: Colors.redAccent,
                         backgroundColor: Colors.redAccent.withOpacity(0.2),
                         label: "Repair",
-                        value: "₹${totalRepair.toStringAsFixed(0)}",
+                        value: "₹${formatIndianNumber(totalRepair)}",
                         textColor: colors.text,
                       ),
                     ),
@@ -90,7 +153,7 @@ class TractorExpensesScreen extends StatelessWidget {
                         iconColor: Colors.green,
                         backgroundColor: Colors.green.withOpacity(0.2),
                         label: "Other",
-                        value: "₹${totalOther.toStringAsFixed(0)}",
+                        value: "₹${formatIndianNumber(totalOther)}",
                         textColor: colors.text,
                       ),
                     ),
@@ -98,12 +161,11 @@ class TractorExpensesScreen extends StatelessWidget {
                 ),
               ),
 
-
               const SizedBox(height: 32),
+
               Divider(color: colors.divider),
               const SizedBox(height: 16),
 
-              // -------------------- Monthly Expenses List --------------------
               _SectionTitle(title: "Monthly Expenses", isDark: isDark),
               const SizedBox(height: 12),
 
@@ -126,7 +188,9 @@ class TractorExpensesScreen extends StatelessWidget {
                       ),
                       subtitle: Text(
                         "Fuel: ₹${m['fuel']} | Repair: ₹${m['repair']} | Other: ₹${m['other']}",
-                        style: TextStyle(color: colors.text.withOpacity(0.7)),
+                        style: TextStyle(
+                          color: colors.text.withOpacity(0.7),
+                        ),
                       ),
                     ),
                   );
@@ -136,6 +200,7 @@ class TractorExpensesScreen extends StatelessWidget {
           ),
         ),
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
@@ -143,14 +208,14 @@ class TractorExpensesScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const AddExpensePage()),
-          );
+          ).then((_) => _initMethods());
         },
       ),
     );
   }
 }
 
-// -------------------- Info Card Widget --------------------
+// -------------------- Info Card --------------------
 class _InfoCard extends StatelessWidget {
   final IconData icon;
   final Color iconColor;
@@ -222,17 +287,22 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-// -------------------- Investment Chart --------------------
+// -------------------- Dynamic Investment Chart --------------------
 class _InvestmentChart extends StatelessWidget {
   final bool isDark;
   final Color chartBg;
-  const _InvestmentChart({required this.isDark, required this.chartBg});
+  final List<int> years;
+  final List<double> values;
+
+  const _InvestmentChart({
+    required this.isDark,
+    required this.chartBg,
+    required this.years,
+    required this.values,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final years = ["2020", "2021", "2022", "2023", "2024"];
-    final investments = [15000.0, 18000.0, 22000.0, 25000.0, 30000.0];
-
     return Container(
       height: 260,
       padding: const EdgeInsets.all(12),
@@ -245,6 +315,7 @@ class _InvestmentChart extends StatelessWidget {
           alignment: BarChartAlignment.spaceAround,
           gridData: const FlGridData(show: false),
           borderData: FlBorderData(show: false),
+
           titlesData: FlTitlesData(
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
@@ -259,6 +330,7 @@ class _InvestmentChart extends StatelessWidget {
                 ),
               ),
             ),
+
             bottomTitles: AxisTitles(
               sideTitles: SideTitles(
                 showTitles: true,
@@ -268,7 +340,7 @@ class _InvestmentChart extends StatelessWidget {
                   return Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      years[index],
+                      years[index].toString(),
                       style: TextStyle(
                         fontSize: 10,
                         color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
@@ -278,16 +350,18 @@ class _InvestmentChart extends StatelessWidget {
                 },
               ),
             ),
+
             rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
             topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
+
           barGroups: List.generate(
             years.length,
                 (i) => BarChartGroupData(
               x: i,
               barRods: [
                 BarChartRodData(
-                  toY: investments[i],
+                  toY: values[i],
                   color: Colors.blueAccent,
                   width: 20,
                   borderRadius: BorderRadius.circular(4),
@@ -301,17 +375,27 @@ class _InvestmentChart extends StatelessWidget {
   }
 }
 
+String formatIndianNumber(num value) {
+  if (value >= 10000000) {
+    return "${(value / 10000000).toStringAsFixed(1)}Cr";
+  } else if (value >= 100000) {
+    return "${(value / 100000).toStringAsFixed(1)}L";
+  } else if (value >= 1000) {
+    return "${(value / 1000).toStringAsFixed(1)}K";
+  }
+  return value.toStringAsFixed(0);
+}
+
+
 // -------------------- Theme Colors --------------------
 class _AppColors {
   final Color background;
   final Color card;
   final Color text;
   final Color divider;
-  final bool isDark;
 
   _AppColors(bool isDark)
-      : isDark = isDark,
-        background = isDark ? const Color(0xFF121212) : Colors.white,
+      : background = isDark ? const Color(0xFF121212) : Colors.white,
         card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
         text = isDark ? Colors.white : Colors.black87,
         divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;

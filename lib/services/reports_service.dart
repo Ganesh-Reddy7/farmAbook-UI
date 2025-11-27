@@ -8,14 +8,13 @@ import '../models/user.dart';
 import 'session_service.dart';
 
 class ReportsService {
-  final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
+  final String? baseUrl = dotenv.env['API_BASE_URL'];
 
   /// Get report data for top cards and tab content
   Future<Map<String, dynamic>?> getReports({required User farmer, required int year}) async {
     try {
       String? token = await SessionService().getToken();
       if (token == null) return null;
-
       final response = await http.post(
         Uri.parse("${baseUrl}/reports/farmer/yearly?farmerId=${farmer.farmerId}&year=$year"),
         headers: {
@@ -23,9 +22,6 @@ class ReportsService {
           "Authorization": "Bearer $token",
         },
       );
-
-
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
@@ -76,8 +72,8 @@ class ReportsService {
     if (token == null || farmerId == null) return {'topCrops': [], 'lowCrops': []};
 
     final Uri url = year == 0
-        ? Uri.parse("${baseUrl}crops/$farmerId")
-        : Uri.parse("${baseUrl}crops/$farmerId?year=$year");
+        ? Uri.parse("${baseUrl}/crops/$farmerId")
+        : Uri.parse("${baseUrl}/crops/$farmerId?year=$year");
     log("GKaaxx :: url :: $url");
     try {
       final response = await http.get(
