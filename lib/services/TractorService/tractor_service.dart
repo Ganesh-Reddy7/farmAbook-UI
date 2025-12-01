@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/Tractor.dart';
+import '../../models/expense.dart';
 
 class TractorService {
   final String? baseUrl = dotenv.env['API_BASE_URL'];
@@ -141,7 +142,8 @@ class TractorService {
     }
   }
 
-  Future<http.Response> addTractorExpense(Map<String, dynamic> expenseData) async {
+  Future<http.Response> addTractorExpense(
+      Map<String, dynamic> expenseData) async {
     final auth = await _loadAuth();
     final url = Uri.parse('$baseUrl/tractor-expenses');
 
@@ -207,7 +209,8 @@ class TractorService {
 
   Future<List<Map<String, dynamic>>> getClients() async {
     final auth = await _loadAuth();
-    final url = Uri.parse('${baseUrl}/tractor-clients/farmer/${auth["farmerId"]}');
+    final url = Uri.parse(
+        '${baseUrl}/tractor-clients/farmer/${auth["farmerId"]}');
     log("Fetching clients → $url");
     try {
       final response = await http.get(
@@ -232,7 +235,7 @@ class TractorService {
           "pendingAmount": (c["pendingAmount"] ?? 0).toDouble(),
           "totalAcresWorked": (c["totalAcresWorked"] ?? 0).toDouble(),
           "totalTrips": c["totalTrips"] ?? 0,
-          "phone":c["phone"]
+          "phone": c["phone"]
         };
       }).toList();
     } catch (e) {
@@ -244,7 +247,8 @@ class TractorService {
   Future<Map<String, dynamic>> getClientActivities(int clientId) async {
     final auth = await _loadAuth();
 
-    final url = Uri.parse("$baseUrl/tractor-clients/client/$clientId/activities");
+    final url = Uri.parse(
+        "$baseUrl/tractor-clients/client/$clientId/activities");
     try {
       final response = await http.get(
         url,
@@ -299,16 +303,17 @@ class TractorService {
 
       log("ADD RETURN RESPONSE → ${response.statusCode} | ${response.body}");
       return response;
-
     } catch (e) {
       log("addReturn() error → $e");
       throw Exception("Network error while sending return data: $e");
     }
   }
 
-  Future<http.Response> addClosePayment({required int activityId , required double paymentAmount}) async {
+  Future<http.Response> addClosePayment(
+      {required int activityId, required double paymentAmount}) async {
     final auth = await _loadAuth();
-    final url = Uri.parse("$baseUrl/tractor-activities/add-payment?activityId=$activityId&paymentAmount=$paymentAmount");
+    final url = Uri.parse(
+        "$baseUrl/tractor-activities/add-payment?activityId=$activityId&paymentAmount=$paymentAmount");
     try {
       final response = await http.post(
         url,
@@ -325,12 +330,14 @@ class TractorService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getYearlyExpenses({required int startYear, required int endYear}) async {
+  Future<List<Map<String, dynamic>>> getYearlyExpenses(
+      {required int startYear, required int endYear}) async {
     log("Here");
     final auth = await _loadAuth();
     final dynamic farmerIdRaw = auth["farmerId"];
     final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
-    final url = Uri.parse("$baseUrl/tractor-expenses/expense-trend-range?farmerId=$farmerId&startYear=$startYear&endYear=$endYear");
+    final url = Uri.parse(
+        "$baseUrl/tractor-expenses/expense-trend-range?farmerId=$farmerId&startYear=$startYear&endYear=$endYear");
     try {
       final response = await http.get(
         url,
@@ -386,7 +393,94 @@ class TractorService {
     }
   }
 
+  Future<List<Expense>> getExpenses(
+      {required String filter, int? year, int? month,}) async {
+    final auth = await _loadAuth();
+    final dynamic farmerIdRaw = auth["farmerId"];
+    final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
+    String base = "$baseUrl/tractor-expenses/farmer";
+    late Uri url;
+    if (filter == "monthly") {
+      url = Uri.parse(
+          "$base/year-month-wise/$farmerId?year=$year&month=$month"
+      );
+    }
+    else if (filter == "yearly") {
+      url = Uri.parse(
+          "$base/year-month-wise/$farmerId?year=$year"
+      );
+    }
+    else {
+      url = Uri.parse(
+          "$base/year-month-wise/$farmerId"
+      );
+    }
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception("Failed: ${response.body}");
+      }
+      final list = jsonDecode(response.body) as List<dynamic>;
 
+      return list.map((e) => Expense.fromJson(e)).toList();
+    } catch (e) {
+      throw Exception("❌ Expenses load error: $e");
+    }
+  }
 
+  Future<List<Map<String, dynamic>>> getYearlyReturns({
+    required int startYear,
+    required int endYear,
+    bool? isSummary,
+  }) async {
+    log("Here");
 
+    final auth = await _loadAuth();
+    final dynamic farmerIdRaw = auth["farmerId"];
+    final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
+
+    final url = Uri.parse(
+        "$baseUrl/tractor-activities/trend/range/$farmerId?startYear=$startYear&endYear=$endYear");
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception("Failed: ${response.body}");
+      }
+
+      final decoded = jsonDecode(response.body);
+      final yearly = decoded["yearlyData"] as List<dynamic>? ?? [];
+
+      return yearly.map<Map<String, dynamic>>((raw) {
+        final map = <String, dynamic>{
+          "year": int.tryParse(raw["year"].toString()) ?? 0,
+          "totalYearAmount": double.tryParse(raw["totalYearAmount"].toString()) ?? 0.0,
+          "monthlyActivities": raw["monthlyActivities"] ?? [],
+        };
+        if (isSummary == true) {
+          map["totalYearAmount"] = raw["totalYearAmount"] ?? 0;
+          map["totalYearReceived"] = double.tryParse(raw["totalYearReceived"].toString()) ?? 0.0;
+          map["totalYearRemaining"] = raw["totalYearRemaining"] ?? "";
+          map["totalYearAcres"] = raw["totalYearAcres"] ?? "";
+        }
+
+        return map;
+      }).toList();
+    } catch (e) {
+      throw Exception("❌ Yearly expenses load error: $e");
+    }
+  }
 }

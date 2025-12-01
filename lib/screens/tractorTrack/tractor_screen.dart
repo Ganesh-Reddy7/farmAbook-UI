@@ -237,7 +237,7 @@ class _TractorScreenState extends State<TractorScreen>
                 children: [
                   TractorSummaryScreen(tractors: tractors),
                   TractorExpensesScreen(),
-                  TractorReturnsScreen(tractors: tractors),
+                  TractorReturnsScreen(),
                   TractorDetailsScreen(),
                 ],
               ),

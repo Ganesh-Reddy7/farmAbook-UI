@@ -1,151 +1,241 @@
-import 'package:fl_chart/fl_chart.dart';
+import 'package:farmabook/utils/formatIndianNumber.dart';
+import 'package:farmabook/widgets/barChart.dart';
+import 'package:farmabook/widgets/sectionTitle.dart';
+import 'package:farmabook/widgets/tractorInfoCard.dart';
 import 'package:flutter/material.dart';
+import '../../services/TractorService/tractor_service.dart';
 import 'add_entities/add_return.dart';
-import 'details_screen/client_list.dart'; // Uncomment when AddReturnPage is ready
+import 'details_screen/client_list.dart';
 
-class TractorReturnsScreen extends StatelessWidget {
-  final List<Map<String, dynamic>> tractors;
-  const TractorReturnsScreen({Key? key, required this.tractors}) : super(key: key);
+class TractorReturnsScreen extends StatefulWidget {
+  const TractorReturnsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<TractorReturnsScreen> createState() => _TractorReturnsScreenState();
+}
+
+class _TractorReturnsScreenState extends State<TractorReturnsScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
+  List<Map<String, dynamic>> tractors = [];
+  bool isLoading = false;
+  double totalReturns = 0;
+  double receivedAmount = 0;
+  double balanceAmount = 0;
+  double totalAreaWorked = 0;
+  int currentYear = 0;
+  List<double> chartValues = [];
+  List<int> chartYears = [];
+  List<double> monthlyChartValues = [];
+  List<String> monthlyChartLabels = [];
+  List<double> monthlyChartValuesReceived = [];
+  List<double> monthlyReturns = List.filled(12, 0);
+  final tractorService = TractorService();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReturnsData();
+  }
+
+  void _loadReturnsData() {
+    _loadChartData();
+    _loadMonthlyChartData();
+
+  }
+
+  Future<void> _loadChartData() async {
+    setState(() => isLoading = true);
+    try {
+      int currentYear = DateTime.now().year;
+      int startYear = currentYear - 5;
+      final yearlyList = await tractorService.getYearlyReturns(
+        startYear: startYear,
+        endYear: currentYear,
+      );
+      chartYears = yearlyList.map<int>((y) => y["year"] as int).toList();
+      chartValues =
+          yearlyList.map<double>((y) => (y["totalYearAmount"] as num).toDouble()).toList();
+    } catch (e) {
+      debugPrint("Error loading chart data: $e");
+    }
+
+    setState(() => isLoading = false);
+  }
+  Future<void> _loadMonthlyChartData() async {
+    try {
+      int year = DateTime.now().year;
+      final data = await tractorService.getYearlyReturns(
+        startYear: year,
+        endYear: year,
+        isSummary: true
+      );
+      if (data.isNotEmpty) {
+        final months = data[0]["monthlyActivities"] as List<dynamic>;
+        monthlyChartLabels = monthlyChartLabels = months.map((m) {
+          final s = m["month"].toString();
+          return s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
+        }).toList();
+        monthlyChartValues = months.map<double>((m) => (m["total"] as num).toDouble()).toList();
+        monthlyChartValuesReceived = months.map<double>((m) => (m["received"] as num).toDouble()).toList();
+        totalReturns = data[0]["totalYearAmount"];
+        totalAreaWorked = data[0]["totalYearAcres"];
+        receivedAmount = data[0]["totalYearReceived"];
+        balanceAmount = data[0]["totalYearRemaining"];
+        currentYear = year;
+      }
+    } catch (e) {
+      debugPrint("Error loading monthly chart: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness != Brightness.dark;
+    final scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
     final colors = _AppColors(isDark);
 
-    // -------------------- Calculate Totals --------------------
-    double totalReturns = 0;
-    double totalAreaWorked = 0;
-    int totalTrips = 0;
-
-    final List<double> monthlyReturns = List.filled(12, 0); // Jan to Dec
-
-    for (var t in tractors) {
-      final monthlyData = List<Map<String, dynamic>>.from(t['monthlyReturns'] ?? []);
-      for (var m in monthlyData) {
-        totalReturns += (m['returns'] ?? 0);
-        totalAreaWorked += (m['areaWorked'] ?? 0);
-        // totalTrips += (m['trips'] ?? 0);
-
-        int monthIndex = _monthToIndex(m['month']);
-        if (monthIndex >= 0 && monthIndex < 12) {
-          monthlyReturns[monthIndex] += (m['returns'] ?? 0);
-        }
-      }
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: scaffoldBg,
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.green),
+        ),
+      );
     }
 
     return Scaffold(
-      backgroundColor: colors.background,
+      backgroundColor: scaffoldBg,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: RefreshIndicator(
+          color: scaffoldBg,
+          strokeWidth: 2.5,
+          onRefresh: () async {
+            _loadReturnsData();
+            await Future.delayed(const Duration(milliseconds: 300));
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // -------------------- Monthly Returns Graph --------------------
-              _SectionTitle(title: "Monthly Returns", isDark: isDark),
+              SectionTitle(title: "Yearly Returns (₹)", isDark: isDark),
               const SizedBox(height: 12),
-              _MonthlyReturnsChart(
-                monthlyReturns: monthlyReturns,
+              CommonBarChart(
                 isDark: isDark,
                 chartBg: colors.card,
+                labels: chartYears.map((e) => e.toString()).toList(),
+                values: chartValues,
+                legend1: "Total Returns",
+                barColor: Colors.blueAccent,
+                barWidth: 20,
+              ),
+              Divider(color: colors.divider),
+              const SizedBox(height: 12),
+              SectionTitle(title: "Monthly Returns (₹)", isDark: isDark),
+              const SizedBox(height: 12),
+
+              CommonBarChart(
+                isDark: isDark,
+                chartBg: colors.card,
+                labels: monthlyChartLabels,
+                values: monthlyChartValuesReceived,
+                values2: monthlyChartValues,
+                legend1: "Total Amount",
+                legend2: "Amount Received",
+                barColor2: Colors.blue,
+                barColor: Colors.green,
+                barWidth: 8,
               ),
               const SizedBox(height: 16),
-
-              // -------------------- Info Cards --------------------
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  double spacing = 12;
-                  double cardWidth = (constraints.maxWidth - 2 * spacing) / 3;
-
-                  return Wrap(
-                    spacing: spacing,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.spaceBetween,
-                    children: [
-                      _ResponsiveInfoCard(
-                        width: cardWidth,
-                        icon: Icons.attach_money,
-                        iconColor: Colors.green,
-                        backgroundColor: Colors.green.withOpacity(0.2),
-                        label: "Total Returns",
-                        value: "₹${totalReturns.toStringAsFixed(0)}",
-                        textColor: colors.text,
-                      ),
-                      _ResponsiveInfoCard(
-                        width: cardWidth,
-                        icon: Icons.landscape,
-                        iconColor: Colors.orange,
-                        backgroundColor: Colors.orange.withOpacity(0.2),
-                        label: "No.of Acres",
-                        value: "${totalAreaWorked.toStringAsFixed(1)} acres",
-                        textColor: colors.text,
-                      ),
-                      _ResponsiveInfoCard(
-                        width: cardWidth,
-                        icon: Icons.directions_car,
-                        iconColor: Colors.blue,
-                        backgroundColor: Colors.blue.withOpacity(0.2),
-                        label: "Total Trips",
-                        value: "$totalTrips",
-                        textColor: colors.text,
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-
-              // -------------------- Month-wise Returns List --------------------
-              _SectionTitle(title: "Returns Details (Current Year)", isDark: isDark),
-              const SizedBox(height: 12),
-              ...tractors.expand((t) {
-                final monthlyData = List<Map<String, dynamic>>.from(t['monthlyReturns'] ?? []);
-                return monthlyData.map((m) {
-                  return Card(
+              Divider(color: colors.divider),
+              SectionTitle(title: "Returns Summary , $currentYear", isDark: isDark),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
                     color: colors.card,
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      width: 1.2,
                     ),
-                    child: ListTile(
-                      title: Text(
-                        "${t['name']} - ${m['month']}",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: colors.text,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: InfoCard(
+                          icon: Icons.account_balance,
+                          iconColor: Colors.blueAccent,
+                          backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                          label: "Total",
+                          value: NumberUtils.formatIndianNumber(totalReturns),
+                          textColor: colors.text,
                         ),
                       ),
-                      subtitle: Text(
-                        "Returns: ₹${m['returns']} | Area Worked: ${m['areaWorked']} acres | Trips: ${m['trips']}",
-                        style: TextStyle(color: colors.text.withOpacity(0.7)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InfoCard(
+                          icon: Icons.currency_rupee,
+                          iconColor: Colors.orange,
+                          backgroundColor: Colors.orange.withOpacity(0.2),
+                          label: "Received",
+                          value: NumberUtils.formatIndianNumber(receivedAmount),
+                          textColor: colors.text,
+                        ),
                       ),
-                    ),
-                  );
-                }).toList();
-              }).toList(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InfoCard(
+                          icon: Icons.balance,
+                          iconColor: Colors.redAccent,
+                          backgroundColor: Colors.redAccent.withOpacity(0.2),
+                          label: "Balance",
+                          value: NumberUtils.formatIndianNumber(balanceAmount),
+                          textColor: colors.text,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: InfoCard(
+                          icon: Icons.landscape,
+                          iconColor: Colors.green,
+                          backgroundColor: Colors.green.withOpacity(0.2),
+                          label: "Acres",
+                          value: NumberUtils.formatIndianNumber(totalAreaWorked),
+                          textColor: colors.text,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SectionTitle(title: "Returns Details (Current Year)", isDark: isDark),
+              const SizedBox(height: 12),
             ],
           ),
         ),
+        ),
       ),
-
       floatingActionButton: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // View Clients Button
           FloatingActionButton(
             heroTag: "viewClients",
             backgroundColor: Colors.blueGrey,
             onPressed: () {
-              // TODO: Navigate to ViewClientsPage when ready
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ViewClientsPage()));
             },
             child: const Icon(Icons.people, color: Colors.white),
           ),
           const SizedBox(height: 12),
 
-          // Add Return Button
           FloatingActionButton(
             heroTag: "addReturn",
             backgroundColor: Colors.green,
@@ -161,189 +251,17 @@ class TractorReturnsScreen extends StatelessWidget {
       ),
     );
   }
-
-  int _monthToIndex(String month) {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return months.indexOf(month);
-  }
 }
-
-// -------------------- Monthly Returns Bar Chart --------------------
-class _MonthlyReturnsChart extends StatelessWidget {
-  final List<double> monthlyReturns;
-  final bool isDark;
-  final Color chartBg;
-
-  const _MonthlyReturnsChart({
-    required this.monthlyReturns,
-    required this.isDark,
-    required this.chartBg,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-    return Container(
-      height: 260,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: chartBg,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          gridData: const FlGridData(show: false),
-          borderData: FlBorderData(show: false),
-          titlesData: FlTitlesData(
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 40,
-                getTitlesWidget: (value, _) => Text(
-                  value.toInt().toString(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                  ),
-                ),
-              ),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, _) {
-                  int index = value.toInt();
-                  if (index < 0 || index >= months.length) return const SizedBox();
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Text(
-                      months[index],
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          barGroups: List.generate(
-            monthlyReturns.length,
-                (i) => BarChartGroupData(
-              x: i,
-              barRods: [
-                BarChartRodData(
-                  toY: monthlyReturns[i],
-                  color: Colors.greenAccent,
-                  width: 20,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// -------------------- Responsive Info Card --------------------
-class _ResponsiveInfoCard extends StatelessWidget {
-  final double width;
-  final IconData icon;
-  final Color iconColor;
-  final Color backgroundColor;
-  final String label;
-  final String value;
-  final Color textColor;
-
-  const _ResponsiveInfoCard({
-    required this.width,
-    required this.icon,
-    required this.iconColor,
-    required this.backgroundColor,
-    required this.label,
-    required this.value,
-    required this.textColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// -------------------- Section Title --------------------
-class _SectionTitle extends StatelessWidget {
-  final String title;
-  final bool isDark;
-
-  const _SectionTitle({required this.title, required this.isDark});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: isDark ? Colors.white : Colors.black87,
-      ),
-    );
-  }
-}
-
 // -------------------- Theme Colors --------------------
 class _AppColors {
   final Color background;
   final Color card;
   final Color text;
-  final bool isDark;
+  final Color divider;
 
-  _AppColors(this.isDark)
-      : background = isDark ? const Color(0xFF081712) : Colors.white,
+  _AppColors(bool isDark)
+      : background = isDark ? const Color(0xFF121212) : Colors.white,
         card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87;
+        text = isDark ? Colors.white : Colors.black87,
+        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }
