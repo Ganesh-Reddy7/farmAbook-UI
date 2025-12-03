@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/expense.dart';
 import '../../services/TractorService/tractor_service.dart';
 import '../../utils/formatIndianNumber.dart';
+import '../../widgets/no_data_widget.dart';
 import '../../widgets/sectionTitle.dart';
 import 'add_entities/add_expense.dart';
 import '../../widgets/barChart.dart';
@@ -34,13 +35,13 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
   String selectedFilter = "monthly";
   int? selectedYear;
   int? selectedMonth;
+  final List<int> _memoYears = List.generate(6, (i) => DateTime.now().year - i);
+  final List<int> _memoMonths = List.generate(12, (i) => i + 1);
 
   Future<List<Expense>>? expensesFuture;
 
   bool isLoading = true;
 
-  final List<int> _memoYears = List.generate(6, (i) => DateTime.now().year - i);
-  final List<int> _memoMonths = List.generate(12, (i) => i + 1);
 
   @override
   void initState() {
@@ -576,7 +577,6 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
                   ),
                 ),
                 const SizedBox(height: 18),
-
                 Divider(color: colors.divider),
                 const SizedBox(height: 12),
                 Row(
@@ -602,18 +602,15 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
                 FutureBuilder<List<Expense>>(
                   future: expensesFuture,
                   builder: (context, snapshot) {
-                    // colors must be defined in the build method scope for this builder to access
                     final theme = Theme.of(context);
                     final isDark = theme.brightness != Brightness.dark;
                     final colors = _AppColors(isDark);
-
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
                         child: Center(child: CircularProgressIndicator(color: Colors.green)),
                       );
                     }
-
                     if (snapshot.hasError) {
                       return Padding(
                         padding: const EdgeInsets.all(16),
@@ -623,19 +620,13 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
                         ),
                       );
                     }
-
                     final expenses = snapshot.data ?? [];
-
                     if (expenses.isEmpty) {
-                      return Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          "No expenses found for this filter.",
-                          style: TextStyle(color: colors.text.withOpacity(0.7)),
-                        ),
+                      return NoDataWidget(
+                        message: "No Expenses found for selected filter",
+                        isDark: isDark,
                       );
                     }
-
                     // For grouped views (yearly/all) we build grouped lists.
                     if (selectedFilter == "monthly") {
                       return Column(
@@ -652,7 +643,6 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
                         }),
                       );
                     }
-
                     // Group for yearly/all
                     final Map<String, List<Expense>> grouped = {};
                     for (final e in expenses) {
@@ -719,7 +709,8 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
                       }).toList(),
                     );
                   },
-                )
+                ),
+                const SizedBox(height: 50)
               ],
             ),
           ),

@@ -1,14 +1,17 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../models/api_response.dart';
+import '../utils/app_toast.dart';
 
 class ApiService {
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? "";
 
   // ---------------------------------------------------------------------------
-  // 🔹 Load token + user (common for all APIs)
+  // 🔹 Load token + user
   // ---------------------------------------------------------------------------
   Future<Map<String, String>> _loadAuth() async {
     final prefs = await SharedPreferences.getInstance();
@@ -20,124 +23,121 @@ class ApiService {
     }
 
     final farmerId = jsonDecode(userData)['id'].toString();
-
     return {"token": token, "farmerId": farmerId};
   }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 Common Headers
-  // ---------------------------------------------------------------------------
   Map<String, String> _headers(String token) => {
     "Content-Type": "application/json",
     "Authorization": "Bearer $token",
   };
 
   // ---------------------------------------------------------------------------
-  // 🔹 GET API
+  // 🔥 UNIVERSAL API CALL HANDLER (applies to GET/POST/PUT/DELETE)
   // ---------------------------------------------------------------------------
-  Future<dynamic> get(String endpoint) async {
-    final auth = await _loadAuth();
-    final url = Uri.parse("$baseUrl$endpoint");
-
-    log("GET → $url");
-
+  Future<ApiResponse?> _request(
+      Future<http.Response> Function() call,
+      BuildContext context,
+      ) async {
     try {
-      final res = await http.get(url, headers: _headers(auth["token"]!));
+      final res = await call();
 
-      log("GET Response (${res.statusCode}) → ${res.body}");
+      log("Response ${res.statusCode}: ${res.body}");
 
-      return _handleResponse(res);
+      final decoded = jsonDecode(res.body);
+      final api = ApiResponse.fromJson(decoded);
+
+      // 🔥 Token expired → Logout user
+      if (api.statusCode == 401 ||
+          api.message.toLowerCase().contains("token")) {
+        await _handleTokenExpiry(context);
+        return null;
+      }
+
+      // ❌ Failure → show popup
+      if (!api.status) {
+        AppToast.showError(context, api.message);
+      }
+
+      return api;
     } catch (e) {
-      throw Exception("GET request failed: $e");
+      AppToast.showError(context, "Something went wrong!");
+      return null;
     }
   }
 
   // ---------------------------------------------------------------------------
-  // 🔹 POST API
+  // 🔹 GET
   // ---------------------------------------------------------------------------
-  Future<dynamic> post(String endpoint, Map<String, dynamic> body) async {
+  Future<ApiResponse?> get(String endpoint, BuildContext context) async {
+    final auth = await _loadAuth();
+    final url = Uri.parse("$baseUrl$endpoint");
+
+    return _request(
+          () => http.get(url, headers: _headers(auth["token"]!)),
+      context,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 🔹 POST
+  // ---------------------------------------------------------------------------
+  Future<ApiResponse?> post(
+      String endpoint, Map<String, dynamic> body, BuildContext context) async {
     final auth = await _loadAuth();
     final url = Uri.parse("$baseUrl$endpoint");
 
     body["farmerId"] = auth["farmerId"];
 
-    log("POST → $url");
-    log("Body → $body");
-
-    try {
-      final res = await http.post(
+    return _request(
+          () => http.post(
         url,
         headers: _headers(auth["token"]!),
         body: jsonEncode(body),
-      );
-
-      log("POST Response (${res.statusCode}) → ${res.body}");
-
-      return _handleResponse(res);
-    } catch (e) {
-      throw Exception("POST request failed: $e");
-    }
+      ),
+      context,
+    );
   }
 
   // ---------------------------------------------------------------------------
-  // 🔹 PUT API
+  // 🔹 PUT
   // ---------------------------------------------------------------------------
-  Future<dynamic> put(String endpoint, Map<String, dynamic> body) async {
+  Future<ApiResponse?> put(
+      String endpoint, Map<String, dynamic> body, BuildContext context) async {
     final auth = await _loadAuth();
     final url = Uri.parse("$baseUrl$endpoint");
 
-    log("PUT → $url");
-    log("Body → $body");
-
-    try {
-      final res = await http.put(
+    return _request(
+          () => http.put(
         url,
         headers: _headers(auth["token"]!),
         body: jsonEncode(body),
-      );
-
-      log("PUT Response (${res.statusCode}) → ${res.body}");
-
-      return _handleResponse(res);
-    } catch (e) {
-      throw Exception("PUT request failed: $e");
-    }
+      ),
+      context,
+    );
   }
 
   // ---------------------------------------------------------------------------
-  // 🔹 DELETE API
+  // 🔹 DELETE
   // ---------------------------------------------------------------------------
-  Future<dynamic> delete(String endpoint) async {
+  Future<ApiResponse?> delete(String endpoint, BuildContext context) async {
     final auth = await _loadAuth();
     final url = Uri.parse("$baseUrl$endpoint");
 
-    log("DELETE → $url");
-
-    try {
-      final res = await http.delete(url, headers: _headers(auth["token"]!));
-
-      log("DELETE Response (${res.statusCode}) → ${res.body}");
-
-      return _handleResponse(res);
-    } catch (e) {
-      throw Exception("DELETE request failed: $e");
-    }
+    return _request(
+          () => http.delete(url, headers: _headers(auth["token"]!)),
+      context,
+    );
   }
 
   // ---------------------------------------------------------------------------
-  // 🔹 Response Handler (shared for all APIs)
+  // 🔥 GLOBAL TOKEN EXPIRY HANDLER
   // ---------------------------------------------------------------------------
-  dynamic _handleResponse(http.Response res) {
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      if (res.body.isEmpty) return null;
+  Future<void> _handleTokenExpiry(BuildContext context) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
 
-      try {
-        return jsonDecode(res.body);
-      } catch (e) {
-        return res.body;
-      }
-    } else {
-      throw Exception("API failed: ${res.statusCode} → ${res.body}");
-    }
+    AppToast.showError(context, "Session expired. Please login again.");
+
+    Navigator.pushNamedAndRemoveUntil(context, "/auth", (route) => false);
   }
 }

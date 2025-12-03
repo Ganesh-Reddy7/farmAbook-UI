@@ -309,11 +309,9 @@ class TractorService {
     }
   }
 
-  Future<http.Response> addClosePayment(
-      {required int activityId, required double paymentAmount}) async {
+  Future<http.Response> addClosePayment({required int activityId, required double paymentAmount}) async {
     final auth = await _loadAuth();
-    final url = Uri.parse(
-        "$baseUrl/tractor-activities/add-payment?activityId=$activityId&paymentAmount=$paymentAmount");
+    final url = Uri.parse("$baseUrl/tractor-activities/add-payment?activityId=$activityId&paymentAmount=$paymentAmount");
     try {
       final response = await http.post(
         url,
@@ -330,9 +328,7 @@ class TractorService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getYearlyExpenses(
-      {required int startYear, required int endYear}) async {
-    log("Here");
+  Future<List<Map<String, dynamic>>> getYearlyExpenses({required int startYear, required int endYear}) async {
     final auth = await _loadAuth();
     final dynamic farmerIdRaw = auth["farmerId"];
     final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
@@ -354,8 +350,7 @@ class TractorService {
       return yearly.map<Map<String, dynamic>>((raw) {
         return {
           "year": int.tryParse(raw["year"].toString()) ?? 0,
-          "totalYearExpense":
-          double.tryParse(raw["totalYearExpense"].toString()) ?? 0.0,
+          "totalYearExpense": double.tryParse(raw["totalYearExpense"].toString()) ?? 0.0,
           "monthlyExpenses": raw["monthlyExpenses"] ?? [],
         };
       }).toList();
@@ -393,17 +388,14 @@ class TractorService {
     }
   }
 
-  Future<List<Expense>> getExpenses(
-      {required String filter, int? year, int? month,}) async {
+  Future<List<Expense>> getExpenses({required String filter, int? year, int? month,}) async {
     final auth = await _loadAuth();
     final dynamic farmerIdRaw = auth["farmerId"];
     final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
     String base = "$baseUrl/tractor-expenses/farmer";
     late Uri url;
     if (filter == "monthly") {
-      url = Uri.parse(
-          "$base/year-month-wise/$farmerId?year=$year&month=$month"
-      );
+      url = Uri.parse("$base/year-month-wise/$farmerId?year=$year&month=$month");
     }
     else if (filter == "yearly") {
       url = Uri.parse(
@@ -411,9 +403,7 @@ class TractorService {
       );
     }
     else {
-      url = Uri.parse(
-          "$base/year-month-wise/$farmerId"
-      );
+      url = Uri.parse("$base/year-month-wise/$farmerId");
     }
     try {
       final response = await http.get(
@@ -434,20 +424,11 @@ class TractorService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getYearlyReturns({
-    required int startYear,
-    required int endYear,
-    bool? isSummary,
-  }) async {
-    log("Here");
-
+  Future<List<Map<String, dynamic>>> getYearlyReturns({required int startYear, required int endYear, bool? isSummary,}) async {
     final auth = await _loadAuth();
     final dynamic farmerIdRaw = auth["farmerId"];
     final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
-
-    final url = Uri.parse(
-        "$baseUrl/tractor-activities/trend/range/$farmerId?startYear=$startYear&endYear=$endYear");
-
+    final url = Uri.parse("$baseUrl/tractor-activities/trend/range/$farmerId?startYear=$startYear&endYear=$endYear");
     try {
       final response = await http.get(
         url,
@@ -476,11 +457,48 @@ class TractorService {
           map["totalYearRemaining"] = raw["totalYearRemaining"] ?? "";
           map["totalYearAcres"] = raw["totalYearAcres"] ?? "";
         }
-
         return map;
       }).toList();
     } catch (e) {
       throw Exception("❌ Yearly expenses load error: $e");
     }
   }
+
+  Future<Map<String, dynamic>> getReturns({required String filter, int? year, int? month,}) async {
+    final auth = await _loadAuth();
+    final dynamic farmerIdRaw = auth["farmerId"];
+    final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
+    String base = "$baseUrl/tractor-activities/farmer/year-month-wise/$farmerId/activities";
+    late Uri url;
+    if (filter == "monthly") {
+      url = Uri.parse("$base?year=$year&month=$month");
+    }
+    else if (filter == "yearly") {
+      url = Uri.parse("$base?year=$year");
+    }
+    else {
+      url = Uri.parse("$base");
+    }
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception("Failed: ${response.body}");
+      }
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      } else {
+        throw Exception("Invalid Returns API response format");
+      }
+    } catch (e) {
+      throw Exception("❌ Returns load error: $e");
+    }
+  }
+
 }

@@ -6,8 +6,8 @@ class CommonBarChart extends StatefulWidget {
   final Color chartBg;
   final List<String> labels;
 
-  final List<double> values; // first dataset
-  final List<double>? values2; // second dataset (optional)
+  final List<double> values; // dataset 1
+  final List<double>? values2; // dataset 2 (optional)
 
   final Color barColor;
   final Color barColor2;
@@ -41,9 +41,7 @@ class _CommonBarChartState extends State<CommonBarChart> {
   bool show1 = true;
   bool show2 = true;
 
-  // ------------------------------------------------
-  // AUTO CALCULATE CLEAN Y-AXIS LIMITS
-  // ------------------------------------------------
+  // Clean Y axis steps
   double _roundMaxY(double value) {
     if (value <= 10) return 10;
     if (value <= 50) return 50;
@@ -57,16 +55,18 @@ class _CommonBarChartState extends State<CommonBarChart> {
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
 
-    // Collect all values (from both datasets)
+    // Combine values safely
     final allValues = [
       ...widget.values,
-      if (widget.values2 != null) ...widget.values2!
+      if (widget.values2 != null) ...widget.values2!,
     ];
 
-    // Get max & round to clean value
-    final double maxValue = allValues.reduce((a, b) => a > b ? a : b);
+    // SAFE: prevent reduce() crash
+    final double maxValue =
+    allValues.isEmpty ? 0 : allValues.reduce((a, b) => a > b ? a : b);
+
     final double yMax = _roundMaxY(maxValue);
-    final double interval = yMax / 5;
+    final double interval = yMax == 0 ? 1 : yMax / 5;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -81,7 +81,6 @@ class _CommonBarChartState extends State<CommonBarChart> {
       ),
 
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           _buildLegendInside(),
           const SizedBox(height: 8),
@@ -92,9 +91,9 @@ class _CommonBarChartState extends State<CommonBarChart> {
               BarChartData(
                 minY: 0,
                 maxY: yMax,
-                alignment: BarChartAlignment.spaceAround,
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
+                alignment: BarChartAlignment.spaceAround,
                 titlesData: _buildTitles(interval),
                 barGroups: _buildBarGroups(),
               ),
@@ -105,9 +104,9 @@ class _CommonBarChartState extends State<CommonBarChart> {
     );
   }
 
-  // ------------------------------------------------
-  // TITLES
-  // ------------------------------------------------
+  // -----------------------------------
+  // Y & X Axis Titles
+  // -----------------------------------
   FlTitlesData _buildTitles(double interval) {
     final isDark = widget.isDark;
 
@@ -116,7 +115,7 @@ class _CommonBarChartState extends State<CommonBarChart> {
         sideTitles: SideTitles(
           reservedSize: 40,
           showTitles: true,
-          interval: interval, // ⭐ FIXED INTERVAL
+          interval: interval,
           getTitlesWidget: (value, _) => Text(
             value.toInt().toString(),
             style: TextStyle(
@@ -126,19 +125,20 @@ class _CommonBarChartState extends State<CommonBarChart> {
           ),
         ),
       ),
+
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           reservedSize: 36,
           showTitles: true,
           getTitlesWidget: (value, _) {
-            int index = value.toInt();
-            if (index < 0 || index >= widget.labels.length) {
+            int i = value.toInt();
+            if (i < 0 || i >= widget.labels.length) {
               return const SizedBox();
             }
             return Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(
-                widget.labels[index],
+                widget.labels[i],
                 style: TextStyle(
                   fontSize: 10,
                   color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
@@ -148,23 +148,25 @@ class _CommonBarChartState extends State<CommonBarChart> {
           },
         ),
       ),
+
       rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
     );
   }
 
-  // ------------------------------------------------
-  // BAR GROUPS
-  // ------------------------------------------------
+  // -----------------------------------
+  // SAFE BAR GROUPS (No Index Crash)
+  // -----------------------------------
   List<BarChartGroupData> _buildBarGroups() {
     final v1 = widget.values;
     final v2 = widget.values2;
-    final List<BarChartGroupData> groups = [];
+
+    final groups = <BarChartGroupData>[];
 
     for (int i = 0; i < widget.labels.length; i++) {
       final rods = <BarChartRodData>[];
 
-      if (show1) {
+      if (show1 && i < v1.length) {
         rods.add(
           BarChartRodData(
             toY: v1[i],
@@ -175,7 +177,7 @@ class _CommonBarChartState extends State<CommonBarChart> {
         );
       }
 
-      if (v2 != null && show2) {
+      if (show2 && v2 != null && i < v2.length) {
         rods.add(
           BarChartRodData(
             toY: v2[i],
@@ -198,15 +200,15 @@ class _CommonBarChartState extends State<CommonBarChart> {
     return groups;
   }
 
-  // ------------------------------------------------
-  // CLICKABLE LEGEND (INSIDE)
-  // ------------------------------------------------
+  // -----------------------------------
+  // LEGEND INSIDE
+  // -----------------------------------
   Widget _buildLegendInside() {
-    final isDark = widget.isDark;
-
     if (widget.legend1 == null && widget.legend2 == null) {
       return const SizedBox();
     }
+
+    final isDark = widget.isDark;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -251,7 +253,7 @@ class _CommonBarChartState extends State<CommonBarChart> {
               ],
             ),
           ),
-        ],
+        ]
       ],
     );
   }

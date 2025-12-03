@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../widgets/no_data_widget.dart';
 import '../add_entities/add_close_payment.dart';
 import '../add_entities/add_return.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -222,19 +223,19 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
                   color: Colors.green.shade600,
                   backgroundColor: colors.background,   // background circle color
                   onRefresh: _fetchActivities,
-                  child: _buildPaymentList(active, colors),
+                  child: _buildPaymentList(active, colors , isDark),
                 ),
                 RefreshIndicator(
                   color:Colors.green.shade600,
                   backgroundColor: colors.background,   // background circle color
                   onRefresh: _fetchActivities,
-                  child: _buildPaymentList(partial, colors),
+                  child: _buildPaymentList(partial, colors ,isDark),
                 ),
                 RefreshIndicator(
                   color: Colors.green.shade600,
                   backgroundColor: colors.background,   // background circle color
                   onRefresh: _fetchActivities,
-                  child: _buildPaymentList(completed, colors),
+                  child: _buildPaymentList(completed, colors , isDark),
                 ),
               ],
             ),
@@ -324,10 +325,11 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
   }
 
   // -------------------- Payment List --------------------
-  Widget _buildPaymentList(List<Map<String, dynamic>> list, _AppColors colors) {
+  Widget _buildPaymentList(List<Map<String, dynamic>> list, _AppColors colors , bool isDark) {
     if (list.isEmpty) {
-      return Center(
-        child: Text("No records found", style: TextStyle(color: colors.text.withOpacity(0.6))),
+      return NoDataWidget(
+        message: "No Records found",
+        isDark: isDark,
       );
     }
 

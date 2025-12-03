@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import '../../../widgets/no_data_widget.dart';
 import '../add_entities/add_client.dart';
 import 'client_details.dart';
 import '../../../services/TractorService/tractor_service.dart';
@@ -82,7 +83,7 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
           ? Center(
             child: CircularProgressIndicator(color: Colors.green.shade600),
       )
-          : _buildClientList(colors),
+          : _buildClientList(colors , isDark),
 
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.green,
@@ -105,7 +106,6 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
       ),
     );
   }
-
   // -------------------- APPBAR --------------------
   AppBar _buildAppBar(_AppColors colors) {
     return AppBar(
@@ -157,13 +157,11 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
   }
 
   // -------------------- CLIENT LIST WITH REFRESH --------------------
-  Widget _buildClientList(_AppColors colors) {
+  Widget _buildClientList(_AppColors colors , bool isDark) {
     if (filteredClients.isEmpty) {
-      return Center(
-        child: Text(
-          "No clients found",
-          style: TextStyle(fontSize: 16, color: colors.text.withOpacity(0.6)),
-        ),
+      return NoDataWidget(
+        message: "No Client Data found",
+        isDark: isDark,
       );
     }
 

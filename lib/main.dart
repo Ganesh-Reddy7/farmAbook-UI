@@ -28,7 +28,6 @@ class _FarmAbookAppState extends State<FarmAbookApp> {
     });
   }
 
-  // ✅ later you’ll replace this with real login check
   bool isLoggedIn = false;
 
   @override
@@ -57,7 +56,6 @@ class _FarmAbookAppState extends State<FarmAbookApp> {
       ),
       themeMode: _themeMode,
       home: SplashScreen(
-        isLoggedIn: isLoggedIn,
         toggleTheme: _toggleTheme,
       ),
     );

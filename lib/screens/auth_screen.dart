@@ -1,10 +1,11 @@
 import 'package:farmabook/screens/main_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../utils/api_exception.dart';
+import '../models/user.dart';
 
 class AuthScreen extends StatefulWidget {
   final VoidCallback toggleTheme;
-
   const AuthScreen({Key? key, required this.toggleTheme}) : super(key: key);
 
   @override
@@ -13,7 +14,6 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   final AuthService _authService = AuthService();
-
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
@@ -50,7 +50,6 @@ class _AuthScreenState extends State<AuthScreen> {
                 const Icon(Icons.eco_outlined, size: 70, color: Colors.white),
                 const SizedBox(height: 20),
 
-                // PHONE
                 _buildField(
                   controller: _phoneController,
                   label: "Phone Number",
@@ -67,14 +66,15 @@ class _AuthScreenState extends State<AuthScreen> {
 
                 const SizedBox(height: 16),
 
-                // PASSWORD
                 _buildField(
                   controller: _passwordController,
                   label: "Password",
                   obscure: !_passwordVisible,
                   suffix: IconButton(
                     icon: Icon(
-                      _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                      _passwordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
                       color: Colors.white70,
                     ),
                     onPressed: () {
@@ -130,7 +130,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // -------------------- FORM FIELD --------------------
+  // -------------------- FIELD --------------------
   Widget _buildField({
     required TextEditingController controller,
     required String label,
@@ -161,7 +161,7 @@ class _AuthScreenState extends State<AuthScreen> {
     );
   }
 
-  // -------------------- LOGIN / REGISTER BUTTON --------------------
+  // -------------------- BUTTON --------------------
   Widget _buildActionButton() {
     return InkWell(
       onTap: _loading ? null : _validateAndSubmit,
@@ -219,39 +219,56 @@ class _AuthScreenState extends State<AuthScreen> {
 
     setState(() => _loading = true);
 
-    bool success = false;
-    if (isLogin) {
-      success = await _authService.login(phone, password);
-    } else {
-      success = await _authService.register(
-        _userNameController.text.trim(),
-        phone,
-        password,
-      );
+    try {
+      if (isLogin) {
+        // 👇 login returns **User**
+        User user = await _authService.login(phone, password);
+
+        _showMessage("Login successful!");
+
+        await Future.delayed(const Duration(milliseconds: 700));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                MainDashboardScreen(onToggleTheme: widget.toggleTheme),
+          ),
+        );
+      } else {
+        // REGISTER
+        bool success = await _authService.register(
+          _userNameController.text.trim(),
+          phone,
+          password,
+        );
+
+        if (success) {
+          _showMessage("Account created! Please login.");
+        }
+
+        // Switch to login screen
+        setState(() {
+          isLogin = true;
+          _passwordController.clear();
+          _confirmController.clear();
+        });
+      }
+    } on ApiException catch (e) {
+      _showMessage(e.message);
+    } catch (e) {
+      _showMessage("Something went wrong.");
     }
 
     setState(() => _loading = false);
-
-    if (success) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MainDashboardScreen(
-            onToggleTheme: widget.toggleTheme,
-          ),
-        ),
-      );
-    } else {
-      _showMessage("Authentication failed. Please try again.");
-    }
   }
 
-  // -------------------- TOAST MESSAGE --------------------
+  // -------------------- SNACKBAR --------------------
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg, style: const TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red.shade800,
+        backgroundColor: Colors.green.shade800,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

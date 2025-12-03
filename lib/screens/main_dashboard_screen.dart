@@ -1,3 +1,4 @@
+import 'package:farmabook/screens/userProfile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/session_service.dart';
@@ -38,6 +39,19 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
 
   void _onTabSelected(int index) {
     setState(() => _selectedIndex = index);
+  }
+
+  void _navigateToProfile() {
+    if (_user == null) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => ProfileScreen(
+          user: _user,
+          onToggleTheme: widget.onToggleTheme,
+        ),
+      ),
+    );
   }
 
   @override
@@ -108,7 +122,7 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
                       ),
                       IconButton(
                         icon: Icon(Icons.person, color: primaryText.withOpacity(0.9)),
-                        onPressed: () {},
+                        onPressed: _navigateToProfile,
                       ),
                     ],
                   ),

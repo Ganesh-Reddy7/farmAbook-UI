@@ -1,54 +1,68 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:developer';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:developer';
 
 import '../models/user.dart';
+import '../utils/api_exception.dart';
+import '../utils/token_manager.dart';
 
 class AuthService {
-  // Replace with your laptop IP and backend port
   final String? baseUrl = dotenv.env['API_BASE_URL'];
 
-  /// LOGIN
-  Future<bool> login(String phone, String password) async {
-    log("Attempting login with phone: $phone");
+  /// ---------------- LOGIN ----------------
+  Future<User> login(String phone, String password) async {
+    final url = Uri.parse("$baseUrl/users/login");
+
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/users/login"),
+        url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({"phone": phone, "password": password}),
       );
 
-      log("Login status: ${response.statusCode}");
-      log("Login response body: ${response.body}");
+      return _handleLoginResponse(response);
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final user = User.fromJson(data['user']);
-        final token = data['token'];
-
-        // Save token & user locally
-        SharedPreferences prefs = await SharedPreferences.getInstance();
-        await prefs.setString("auth_token", token);
-        await prefs.setString("user_data", jsonEncode(user.toJson()));
-        return true;
-      } else {
-        log("Login failed: ${response.statusCode}");
-        return false;
-      }
     } catch (e) {
-      log("Login exception: $e");
-      return false;
+      throw ApiException("Unable to connect to server");
     }
   }
 
-  /// REGISTER
+  User _handleLoginResponse(http.Response response) {
+    log("Login Status: ${response.statusCode}");
+    log("Login Body: ${response.body}");
+
+    final body = jsonDecode(response.body);
+
+    final bool result = body["result"] ?? false;
+    final String message = body["message"] ?? "Unknown error";
+
+    if (!result) {
+      throw ApiException(message);
+    }
+
+    final data = body["response"];
+    if (data == null) {
+      throw ApiException("Invalid server response");
+    }
+
+    final token = data["token"];
+    final user = User.fromJson(data["user"]);
+
+    // IMPORTANT: Save token & expiry here
+    TokenManager.saveToken(token);
+    TokenManager.saveUser(user.toJson());
+
+    return user;
+  }
+
+  /// ---------------- REGISTER ----------------
   Future<bool> register(String username, String phone, String password) async {
-    log("Attempting register for username: $username");
+    final url = Uri.parse("$baseUrl/users/register");
+
     try {
       final response = await http.post(
-        Uri.parse("$baseUrl/users/register"),
+        url,
         headers: {"Content-Type": "application/json"},
         body: jsonEncode({
           "username": username,
@@ -57,25 +71,29 @@ class AuthService {
         }),
       );
 
-      log("Register status: ${response.statusCode}");
-      log("Register response body: ${response.body}");
+      return _handleRegisterResponse(response);
 
-      return response.statusCode == 200;
     } catch (e) {
-      log("Register exception: $e");
-      return false;
+      throw ApiException("Unable to connect to server");
     }
   }
 
-  /// GET TOKEN
-  Future<String?> getToken() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString("auth_token");
+  bool _handleRegisterResponse(http.Response response) {
+    final body = jsonDecode(response.body);
+
+    final result = body["result"] ?? false;
+    final String? message = body["message"];
+
+    if (!result) {
+      throw ApiException(message ?? "Registration failed");
+    }
+
+    return true;
   }
 
-  /// LOGOUT
-  Future<void> logout() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.remove("auth_token");
-  }
+  /// ---------------- GET TOKEN ----------------
+  Future<String?> getToken() async => TokenManager.getToken();
+
+  /// ---------------- LOGOUT ----------------
+  Future<void> logout() async => TokenManager.clear();
 }
