@@ -1,25 +1,36 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/NegativeBarChart.dart';
+import '../../widgets/barChart.dart';
+import '../../widgets/sectionTitle.dart';
 import 'add_entities/add_tractor.dart';
 import 'details_screen/tractor_details_page.dart';
 import '../../services/TractorService/tractor_service.dart';
 
 class TractorDetailsScreen extends StatefulWidget {
   const TractorDetailsScreen({super.key});
-
   @override
   State<TractorDetailsScreen> createState() => _TractorDetailsScreenState();
 }
-
-class _TractorDetailsScreenState extends State<TractorDetailsScreen> {
+class _TractorDetailsScreenState extends State<TractorDetailsScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   final TractorService _tractorService = TractorService();
   List<Map<String, dynamic>> tractors = [];
+  List<String> monthlyChartLabels = [];
+  List<double> monthlyReturns = [];
+  List<double> monthlyExpenses = [];
+  List<double> monthlyAcresWorked = [];
+  List<double> monthlyFuelConsumed= [];
+  List<double> monthlyProfit = [];
+
+
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadTractors();
+    _loadMonthlyChartData();
   }
 
   Future<void> _loadTractors() async {
@@ -30,101 +41,114 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> {
     });
   }
 
+  Future<void> _loadMonthlyChartData() async {
+    try {
+      int year = DateTime.now().year;
+      final data = await _tractorService.getMonthlyTractorStats(
+          year: year,
+      );
+      if (data.isNotEmpty) {
+        monthlyChartLabels = monthlyChartLabels = data.map((m) {
+          final s = m["month"].toString();
+          return  s;
+        }).toList();
+        monthlyReturns = data.map<double>((m) => (m["returnsAmount"] as num).toDouble()).toList();
+        monthlyExpenses = data.map<double>((m) => (m["expenseAmount"] as num).toDouble()).toList();
+        monthlyAcresWorked = data.map<double>((m) => (m["acresWorked"] as num).toDouble()).toList();;
+        monthlyFuelConsumed = data.map<double>((m) => (m["fuelLitres"] as num).toDouble()).toList();;
+        monthlyProfit = data.map<double>((m) => (m["totalProfit"] as num).toDouble()).toList();;
+      }
+    } catch (e) {
+      debugPrint("Error loading monthly chart: $e");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context); // required because of AutomaticKeepAliveClientMixin
+
     final isDark = Theme.of(context).brightness != Brightness.dark;
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color textColor = isDark ? Colors.white : Colors.black87;
+    final colors = _AppColorsMain(isDark);
+
+    if (isLoading) {
+      return Scaffold(
+        backgroundColor: scaffoldBg,
+        body: const Center(
+          child: CircularProgressIndicator(color: Colors.green),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: scaffoldBg,
       body: SafeArea(
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: const EdgeInsets.all(16),
-              sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildChartSection(
-                    context: context,
-                    title: "Yearly Expenses vs Returns (₹)",
-                    labels: ["2020", "2021", "2022", "2023", "2024"],
-                    firstData: [15000, 17000, 25000, 27000, 31000],
-                    secondData: [20000, 22000, 28000, 32000, 40000],
-                    firstColor: Colors.redAccent,
-                    secondColor: Colors.greenAccent,
-                    firstLabel: "Expenses",
-                    secondLabel: "Returns",
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 32),
-                  _buildChartSection(
-                    context: context,
-                    title: "Monthly Fuel Consumption & Area Worked",
-                    labels: const [
-                      "Jan",
-                      "Feb",
-                      "Mar",
-                      "Apr",
-                      "May",
-                      "Jun",
-                      "Jul",
-                      "Aug",
-                      "Sep",
-                      "Oct",
-                      "Nov",
-                      "Dec"
-                    ],
-                    firstData: const [
-                      120,
-                      140,
-                      100,
-                      160,
-                      180,
-                      200,
-                      190,
-                      170,
-                      150,
-                      130,
-                      120,
-                      110
-                    ],
-                    secondData: const [
-                      20,
-                      25,
-                      22,
-                      28,
-                      30,
-                      32,
-                      29,
-                      26,
-                      25,
-                      24,
-                      23,
-                      22
-                    ],
-                    firstColor: Colors.orangeAccent,
-                    secondColor: Colors.blueAccent,
-                    firstLabel: "Fuel (L)",
-                    secondLabel: "Area (Acres)",
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 24),
-                  Divider(color: Colors.grey.withOpacity(0.3)),
-                  const SizedBox(height: 24),
-                  _TractorListSection(
-                    tractors: tractors,
-                    colors: _AppColors(isDark),
-                  ),
-                ]),
+        child: RefreshIndicator(
+          color: Colors.green,
+          strokeWidth: 2.5,
+          onRefresh: _loadTractors,   // 👈 Pull-to-refresh added
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(), // 👈 Required to pull
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.all(16),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    const SizedBox(height: 8),
+                    SectionTitle(title: "Monthly Returns and Expenses (₹)", isDark: isDark),
+                    const SizedBox(height: 16),
+                    CommonBarChart(
+                      isDark: isDark,
+                      chartBg: colors.card,
+                      labels: monthlyChartLabels,
+                      values: monthlyReturns,
+                      values2: monthlyExpenses,
+                      legend1: "Returns",
+                      legend2: "Expenses",
+                      barColor2: Colors.blue,
+                      barColor: Colors.green,
+                      barWidth: 8,
+                    ),
+                    const SizedBox(height: 16),
+                    SectionTitle(title: "Monthly Fuel and Acres", isDark: isDark),
+                    const SizedBox(height: 16),
+                    CommonBarChart(
+                      isDark: isDark,
+                      chartBg: colors.card,
+                      labels: monthlyChartLabels,
+                      values: monthlyFuelConsumed,
+                      values2: monthlyAcresWorked,
+                      legend1: "Fuel",
+                      legend2: "Acres Worked",
+                      barColor: Colors.limeAccent,
+                      barColor2: Colors.brown,
+                      barWidth: 8,
+                    ),
+                    const SizedBox(height: 16),
+                    SectionTitle(title: "Monthly Profit (₹)", isDark: isDark),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 300,
+                      child: SingleMetricChart(
+                        years: monthlyChartLabels,
+                        values: monthlyProfit,
+                        isDark: isDark,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    _TractorListSection(
+                      tractors: tractors,
+                      colors: _AppColors(isDark),
+                    ),
+                  ]),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: "add-tractor",
         backgroundColor: Colors.green.shade700,
         onPressed: () => _navigateToAddTractor(context),
         child: const Icon(Icons.add, color: Colors.white),
@@ -132,196 +156,11 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> {
     );
   }
 
-  Widget _buildChartSection({
-    required BuildContext context,
-    required String title,
-    required List<String> labels,
-    required List<double> firstData,
-    required List<double> secondData,
-    required Color firstColor,
-    required Color secondColor,
-    required String firstLabel,
-    required String secondLabel,
-    required bool isDark,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _CombinedBarChart(
-          isDark: isDark,
-          labels: labels,
-          firstData: firstData,
-          secondData: secondData,
-          firstColor: firstColor,
-          secondColor: secondColor,
-          firstLabel: firstLabel,
-          secondLabel: secondLabel,
-        ),
-      ],
-    );
-  }
 
   void _navigateToAddTractor(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AddTractorPage()),
-    );
-  }
-}
-
-class _CombinedBarChart extends StatelessWidget {
-  final bool isDark;
-  final List<String> labels;
-  final List<double> firstData;
-  final List<double> secondData;
-  final Color firstColor;
-  final Color secondColor;
-  final String firstLabel;
-  final String secondLabel;
-
-  const _CombinedBarChart({
-    required this.isDark,
-    required this.labels,
-    required this.firstData,
-    required this.secondData,
-    required this.firstColor,
-    required this.secondColor,
-    required this.firstLabel,
-    required this.secondLabel,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 260,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.transparent, // ✅ Transparent background
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.06),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _LegendDot(color: firstColor, label: firstLabel),
-              const SizedBox(width: 16),
-              _LegendDot(color: secondColor, label: secondLabel),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 38,
-                      getTitlesWidget: (value, _) => Text(
-                        value.toInt().toString(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isDark ? Colors.white70 : Colors.black87,
-                        ),
-                      ),
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, _) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= labels.length) {
-                          return const SizedBox();
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            labels[index],
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade700,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                barGroups: List.generate(labels.length, (i) {
-                  return BarChartGroupData(
-                    x: i,
-                    barsSpace: 6,
-                    barRods: [
-                      BarChartRodData(
-                        toY: firstData[i],
-                        color: firstColor.withOpacity(0.9),
-                        width: 10,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                      BarChartRodData(
-                        toY: secondData[i],
-                        color: secondColor.withOpacity(0.9),
-                        width: 10,
-                        borderRadius: BorderRadius.circular(3),
-                      ),
-                    ],
-                  );
-                }),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final Color color;
-  final String label;
-
-  const _LegendDot({required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(5),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.grey),
-        ),
-      ],
     );
   }
 }
@@ -469,11 +308,23 @@ class _TractorTile extends StatelessWidget {
     );
   }
 }
-
 class _AppColors {
   final Color text;
   final bool isDark;
 
   _AppColors(this.isDark)
       : text = isDark ? Colors.white : Colors.black87;
+}
+
+class _AppColorsMain {
+  final Color background;
+  final Color card;
+  final Color text;
+  final Color divider;
+
+  _AppColorsMain(bool isDark)
+      : background = isDark ? const Color(0xFF121212) : Colors.white,
+        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
+        text = isDark ? Colors.white : Colors.black87,
+        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }

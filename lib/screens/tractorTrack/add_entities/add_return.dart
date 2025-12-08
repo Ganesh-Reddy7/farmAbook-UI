@@ -4,7 +4,6 @@ import '../../../models/Tractor.dart';
 import '../../../services/TractorService/tractor_service.dart';
 
 class AddReturnPage extends StatefulWidget {
-  // Optional client info: if provided, hide "Worked With / Name" field
   final int? clientId;
   final String? clientName;
 
@@ -385,10 +384,6 @@ class _AddReturnPageState extends State<AddReturnPage> {
     );
   }
 
-  // --------------------------------------------------------------------------
-  // Helpers (same style as Expense screen)
-  // --------------------------------------------------------------------------
-
   Widget _dropdownLikeField({
     required String value,
     required _AppColors colors,
@@ -466,9 +461,6 @@ class _AddReturnPageState extends State<AddReturnPage> {
   }
 }
 
-// --------------------------------------------------------------------------
-// Bottom Sheet Selector (same as Expense screen)
-// --------------------------------------------------------------------------
 Future<T?> showBottomSheetSelector<T>({
   required BuildContext context,
   required String title,
@@ -542,10 +534,6 @@ Future<T?> showBottomSheetSelector<T>({
     },
   );
 }
-
-// --------------------------------------------------------------------------
-// Theme Colors
-// --------------------------------------------------------------------------
 class _AppColors {
   final Color background;
   final Color card;

@@ -32,7 +32,7 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
   int totalRepair = 0;
   int totalOther = 0;
 
-  String selectedFilter = "monthly";
+  String selectedFilter = "yearly";
   int? selectedYear;
   int? selectedMonth;
   final List<int> _memoYears = List.generate(6, (i) => DateTime.now().year - i);
@@ -48,8 +48,8 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
     super.initState();
     _initMethods();
   }
-  void _initMethods() {
-    _loadChartData();
+  Future<void> _initMethods() async {
+    await _loadChartData();
     _loadMonthlyChartData();
     _getSummaryData();
     _loadExpenses();

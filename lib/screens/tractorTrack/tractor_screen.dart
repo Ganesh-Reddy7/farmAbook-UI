@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-// Note: FrostedCard is no longer imported as the custom card widget is used directly.
 import 'tractor_summary_screen.dart';
 import 'tractor_expenses_screen.dart';
 import 'tractor_returns_screen.dart';
@@ -235,7 +234,7 @@ class _TractorScreenState extends State<TractorScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  TractorSummaryScreen(tractors: tractors),
+                  TractorSummaryScreen(),
                   TractorExpensesScreen(),
                   TractorReturnsScreen(),
                   TractorDetailsScreen(),

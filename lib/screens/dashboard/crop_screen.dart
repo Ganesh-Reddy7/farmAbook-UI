@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/crop.dart';
 import '../../services/crop_service.dart';
+import '../../widgets/common_bottom_sheet_selector.dart';
 import 'add_entities/add_crop_screen.dart';
 import 'crop_details_screen.dart';
 
@@ -119,40 +120,58 @@ class _CropsScreenState extends State<CropsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Select Year:",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: widget.primaryText)),
-                  DropdownButton<int>(
-                    dropdownColor: Colors.black87,
-                    value: _selectedYear,
-                    items: List.generate(5, (i) => DateTime.now().year - i)
-                        .map((year) => DropdownMenuItem<int>(
-                      value: year,
-                      child: Text(
-                        year.toString(),
-                        style: TextStyle(color: widget.primaryText),
-                      ),
-                    ))
-                        .toList(),
-                    onChanged: (year) {
-                      if (year != null) {
-                        setState(() => _selectedYear = year);
-                        _fetchCropsForYear(year);
+                  Text(
+                    "Select Year:",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: widget.primaryText,
+                    ),
+                  ),
+
+                  GestureDetector(
+                    onTap: () async {
+                      final years = List.generate(5, (i) => DateTime.now().year - i);
+
+                      final selectedYear = await CommonBottomSheetSelector.show<int>(
+                        context: context,
+                        title: "Select Year",
+                        items: years,
+                        displayText: (year) => year.toString(),
+                        backgroundColor: Colors.black87,
+                        textColor: widget.primaryText,
+                        selected: _selectedYear,
+                      );
+
+                      if (selectedYear != null) {
+                        setState(() => _selectedYear = selectedYear);
+                        _fetchCropsForYear(selectedYear);
                       }
                     },
+                    child: Row(
+                      children: [
+                        Text(
+                          _selectedYear.toString(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: widget.primaryText,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: widget.primaryText,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
 
-              // -------------------- Total Area & Quantity --------------------
               _totalAreaQuantityCard(totalArea, totalQty),
               const SizedBox(height: 20),
 
-              // -------------------- Pie Chart --------------------
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),

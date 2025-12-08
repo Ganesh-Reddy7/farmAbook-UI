@@ -34,7 +34,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
   List<double> monthlyReturns = List.filled(12, 0);
   final tractorService = TractorService();
 
-  String selectedFilter = "monthly";
+  String selectedFilter = "yearly";
   int? selectedYear;
   int? selectedMonth;
   final List<int> _memoYears = List.generate(6, (i) => DateTime.now().year - i);
@@ -57,9 +57,9 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
     _loadReturnsData();
   }
 
-  void _loadReturnsData() {
-    _loadChartData();
-    _loadMonthlyChartData();
+  Future<void> _loadReturnsData() async {
+    await _loadChartData();
+    await _loadMonthlyChartData();
     _loadReturnsDataList();
   }
 
@@ -73,8 +73,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
         endYear: currentYear,
       );
       chartYears = yearlyList.map<int>((y) => y["year"] as int).toList();
-      chartValues =
-          yearlyList.map<double>((y) => (y["totalYearAmount"] as num).toDouble()).toList();
+      chartValues = yearlyList.map<double>((y) => (y["totalYearAmount"] as num).toDouble()).toList();
     } catch (e) {
       debugPrint("Error loading chart data: $e");
     }
@@ -955,128 +954,140 @@ class _ReturnListItem extends StatelessWidget {
     final String status = activity["paymentStatus"] ?? "";
     final statusColor = _getStatusColor(status);
 
-    return GestureDetector(
-      onTap: () {
-        // Assume PaymentDetailsPage and NumberUtils are defined elsewhere
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentDetailsPage(
-              activityId: activity["activityId"] ?? 0,
-              title: activity["clientName"] ?? "Unknown",
-              totalAmount: (activity["amountEarned"] ?? 0).toDouble(),
-              amountReceived: (activity["amountReceived"] ?? 0).toDouble(),
-              date: activity["activityDate"] ?? "",
-              acres: (activity["acresWorked"] ?? 0).toDouble(),
-            ),
-          ),
-        );
-      },
-      // Restored Column wrapper for the divider
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(12),
-              // REMOVED: Box shadow
-              border: Border.all(color: dividerColor.withOpacity(0.2), width: 0.5), // Added a subtle border for separation
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 1. MAIN CONTENT (Client Name, Date/Acres)
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // CLIENT NAME
-                      Text(
-                        activity["clientName"] ?? "Unknown Client",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: textColor,
-                          fontWeight: FontWeight.w600,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-
-                      // DATE + ACRES (Secondary Info)
-                      Text(
-                        "${activity["activityDate"]} • ${activity["acresWorked"]} Acres",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: textColor.withOpacity(0.5),
-                        ),
-                      ),
-                    ],
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          if (!context.mounted) return;
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  PaymentDetailsPage(
+                    activityId: activity["id"] ?? 0,
+                    title: activity["clientName"] ?? "Unknown",
+                    totalAmount: (activity["amountEarned"] ?? 0).toDouble(),
+                    amountReceived: (activity["amountPaid"] ?? 0).toDouble(),
+                    date: activity["activityDate"] ?? "",
+                    acres: (activity["acresWorked"] ?? 0).toDouble(),
                   ),
+            ),
+          );
+        },
+
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: dividerColor.withOpacity(0.2),
+                  width: 0.5,
                 ),
+              ),
 
-                const SizedBox(width: 16),
-
-                // 2. AMOUNT & STATUS (New Column structure)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // AMOUNT
-                    Text(
-                      "₹${NumberUtils.formatIndianNumber(activity["amountEarned"] ?? 0)}",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-
-                    // STATUS ROW (Below Amount)
-                    Row(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // MAIN CONTENT
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Status Dot
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: statusColor,
-                            shape: BoxShape.circle,
+                        // CLIENT NAME
+                        Text(
+                          activity["clientName"] ?? "Unknown Client",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: textColor,
+                            fontWeight: FontWeight.w600,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 6),
 
-                        // Status Chip Text
+                        const SizedBox(height: 4),
+
+                        // DATE + ACRES
                         Text(
-                          status.replaceAll('_', ' '),
+                          "${activity["activityDate"]} • ${activity["acresWorked"]} Acres",
                           style: TextStyle(
-                            fontSize: 10,
-                            color: statusColor,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.2,
+                            fontSize: 12,
+                            color: textColor.withOpacity(0.5),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                  ),
 
-          // READDED: DIVIDER BETWEEN ITEMS
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
-            child: Divider(color: dividerColor.withOpacity(0.4), height: 1.0),
-          ),
-        ],
+                  const SizedBox(width: 16),
+
+                  // AMOUNT & STATUS
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        "₹${NumberUtils.formatIndianNumber(
+                            activity["amountEarned"] ?? 0)}",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: textColor,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Row(
+                        children: [
+                          // STATUS DOT
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+
+                          const SizedBox(width: 6),
+
+                          Text(
+                            status.replaceAll('_', ' '),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: statusColor,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // DIVIDER
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+              child: Divider(
+                color: dividerColor.withOpacity(0.4),
+                height: 1.0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-String monthName(int m) {
+  String monthName(int m) {
   const list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   return list[m - 1];
 }

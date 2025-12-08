@@ -32,4 +32,6 @@ class SummaryData {
       'totalProduction': totalProduction,
     };
   }
+
+  void operator [](String other) {}
 }

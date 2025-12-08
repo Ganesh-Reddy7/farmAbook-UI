@@ -464,7 +464,7 @@ class TractorService {
     }
   }
 
-  Future<Map<String, dynamic>> getReturns({required String filter, int? year, int? month,}) async {
+  Future<Map<String, dynamic>> getReturns({required String filter, int? year, int? month}) async {
     final auth = await _loadAuth();
     final dynamic farmerIdRaw = auth["farmerId"];
     final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
@@ -498,6 +498,83 @@ class TractorService {
       }
     } catch (e) {
       throw Exception("❌ Returns load error: $e");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getYearlySummary({required int startYear, required int endYear}) async {
+    final auth = await _loadAuth();
+    final dynamic farmerIdRaw = auth["farmerId"];
+    final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
+    final url = Uri.parse("$baseUrl/tractor/yearly-stats?farmerId=$farmerId&startYear=$startYear&endYear=$endYear");
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception("Failed: ${response.body}");
+      }
+      final decoded = jsonDecode(response.body);
+      final yearly = decoded["yearlyData"] as List<dynamic>? ?? [];
+
+      return yearly.map<Map<String, dynamic>>((raw) {
+        final map = <String, dynamic>{
+          "year": int.tryParse(raw["year"].toString()) ?? 0,
+          "totalExpenses": double.tryParse(raw["totalExpenses"].toString()) ?? 0.0,
+          "totalReturns": double.tryParse(raw["totalReturns"].toString()) ?? 0.0,
+          "acresWorked": double.tryParse(raw["acresWorked"].toString()) ?? 0.0,
+          "fuelLitres": double.tryParse(raw["fuelLitres"].toString()) ?? 0.0,
+          "totalProfit": double.tryParse((raw["totalReturns"] - raw["totalExpenses"]).toString()) ?? 0.0
+        };
+        return map;
+      }).toList();
+    } catch (e) {
+      throw Exception("❌ Yearly expenses load error: $e");
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getMonthlyTractorStats({required int year,  int? tractorId}) async {
+    final auth = await _loadAuth();
+    final dynamic farmerIdRaw = auth["farmerId"];
+    final int farmerId = int.tryParse(farmerIdRaw.toString()) ?? 0;
+    String base = "$baseUrl/tractor/monthly?farmerId=$farmerId&year=$year";
+    late Uri url;
+    if(tractorId != null){
+      url = Uri.parse("$base?tractorId=$tractorId");
+    }else{
+      url = Uri.parse("$base");
+    }
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${auth["token"]}",
+        },
+      );
+      if (response.statusCode != 200) {
+        throw Exception("Failed: ${response.body}");
+      }
+      final decoded = jsonDecode(response.body);
+      log("GKaaaxx :: decode :: $decoded");
+      final yearly = decoded["monthlyData"] as List<dynamic>? ?? [];
+
+      return yearly.map<Map<String, dynamic>>((raw) {
+        final map = <String, dynamic>{
+          "month": (raw["month"].toString()),
+          "returnsAmount": double.tryParse(raw["returnsAmount"].toString()) ?? 0.0,
+          "expenseAmount": double.tryParse(raw["expenseAmount"].toString()) ?? 0.0,
+          "acresWorked": double.tryParse(raw["acresWorked"].toString()) ?? 0.0,
+          "fuelLitres": double.tryParse(raw["fuelLitres"].toString()) ?? 0.0,
+          "totalProfit": double.tryParse((raw["returnsAmount"] - raw["expenseAmount"]).toString()) ?? 0.0
+        };
+        return map;
+      }).toList();
+    } catch (e) {
+      throw Exception("❌ Monthly expenses load error: $e");
     }
   }
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/return_model.dart';
 import '../../services/return_service.dart';
+import '../../widgets/common_bottom_sheet_selector.dart';
 import 'add_entities/add_returns_screen.dart';
 import 'detail_screens/return_details_screen.dart';
 
@@ -25,7 +26,7 @@ class ReturnsScreen extends StatefulWidget {
     required this.cardGradientStart,
     required this.cardGradientEnd,
     required this.cardBorder,
-    this.onDataChanged, // <-- add this
+    this.onDataChanged,
 
     Key? key,
   }) : super(key: key);
@@ -64,7 +65,6 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
 
   Future<void> _refreshCurrentYearReturns() async {
     await _fetchReturnsForYear(_selectedYear);
-    // Notify parent (DashboardScreen) to refresh top cards
     if (widget.onDataChanged != null) {
       widget.onDataChanged!();
     }
@@ -151,28 +151,44 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                   Text(
                     "Select Year:",
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: widget.primaryText),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: widget.primaryText,
+                    ),
                   ),
-                  DropdownButton<int>(
-                    dropdownColor: Colors.black87,
-                    value: _selectedYear,
-                    items: lastFiveYears
-                        .map((year) => DropdownMenuItem<int>(
-                      value: year,
-                      child: Text(
-                        year.toString(),
-                        style: TextStyle(color: widget.primaryText),
-                      ),
-                    ))
-                        .toList(),
-                    onChanged: (year) {
-                      if (year != null) {
-                        setState(() => _selectedYear = year);
-                        _fetchReturnsForYear(year);
+                  GestureDetector(
+                    onTap: () async {
+                      final selectedYear = await CommonBottomSheetSelector.show<int>(
+                        context: context,
+                        title: "Select Year",
+                        items: lastFiveYears,
+                        displayText: (year) => year.toString(),
+                        backgroundColor: Colors.black87,
+                        textColor: widget.primaryText,
+                        selected: _selectedYear,
+                      );
+
+                      if (selectedYear != null) {
+                        setState(() => _selectedYear = selectedYear);
+                        _fetchReturnsForYear(selectedYear);
                       }
                     },
+                    child: Row(
+                      children: [
+                        Text(
+                          _selectedYear.toString(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: widget.primaryText,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: widget.primaryText,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),

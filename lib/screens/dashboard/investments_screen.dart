@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/investment.dart';
 import '../../services/investment_service.dart';
+import '../../widgets/common_bottom_sheet_selector.dart';
 import 'add_entities/add_investment_screen.dart' hide Worker;
 import 'worker_list_screen.dart';
 
@@ -25,7 +26,7 @@ class InvestmentsScreen extends StatefulWidget {
     required this.cardGradientStart,
     required this.cardGradientEnd,
     required this.cardBorder,
-    this.onDataChanged, // <-- add this
+    this.onDataChanged,
     Key? key,
   }) : super(key: key);
 
@@ -168,35 +169,45 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                       color: widget.primaryText,
                     ),
                   ),
-                  DropdownButton<int>(
-                    dropdownColor: Colors.black87,
-                    value: _selectedYear,
-                    items: lastFiveYears
-                        .map((year) => DropdownMenuItem<int>(
-                      value: year,
-                      child: Text(
-                        year.toString(),
-                        style: TextStyle(color: widget.primaryText),
-                      ),
-                    ))
-                        .toList(),
-                    onChanged: (year) {
-                      if (year != null) {
-                        setState(() => _selectedYear = year);
-                        _fetchInvestmentsForYear(year, true);
+
+                  GestureDetector(
+                    onTap: () async {
+                      final selectedYear = await CommonBottomSheetSelector.show<int>(
+                        context: context,
+                        title: "Select Year",
+                        items: lastFiveYears,
+                        displayText: (year) => year.toString(),
+                        backgroundColor: Colors.black87,
+                        textColor: widget.primaryText,
+                        selected: _selectedYear,
+                      );
+
+                      if (selectedYear != null) {
+                        setState(() => _selectedYear = selectedYear);
+                        _fetchInvestmentsForYear(selectedYear, true);
                       }
                     },
+                    child: Row(
+                      children: [
+                        Text(
+                          _selectedYear.toString(),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: widget.primaryText,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Icon(Icons.arrow_drop_down, color: widget.primaryText),
+                      ],
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              // Total and Pending card
               _totalAndPendingCard(totalInvestment, totalRemaining),
               const SizedBox(height: 20),
-              // Pie chart
               _investmentPieChart(currentYearInvestments, totalInvestment),
               const SizedBox(height: 20),
-              // Investment list
               currentYearInvestments.isEmpty
                   ? _noInvestmentsCard()
                   : Column(

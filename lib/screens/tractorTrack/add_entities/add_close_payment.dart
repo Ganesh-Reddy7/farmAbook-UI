@@ -45,39 +45,42 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
           icon: Icon(Icons.arrow_back, color: colors.text),
           onPressed: () => Navigator.pop(context, true),
         ),
-        title: Text(widget.title,
-            style: TextStyle(
-                fontWeight: FontWeight.w700, color: colors.text, fontSize: 20)),
+        title: Text(
+          widget.title,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: colors.text,
+            fontSize: 20,
+          ),
+        ),
       ),
 
       body: SafeArea(
-        child: LayoutBuilder(builder: (_, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: IntrinsicHeight(
-                child: Column(
-                  children: [
-                    _buildDetailsCard(colors),
-                    const SizedBox(height: 20),
+        child: LayoutBuilder(
+          builder: (_, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
+                    children: [
+                      _buildDetailsCard(colors),
+                      const SizedBox(height: 20),
 
-                    // --------------- FULLY PAID ----------------
-                    if (remaining == 0) _buildFullyPaidCard(),
+                      if (remaining == 0) _buildFullyPaidCard(),
+                      if (remaining > 0) _buildAddPaymentCard(colors, isDark),
 
-                    // --------------- ADD PAYMENT ----------------
-                    if (remaining > 0) _buildAddPaymentCard(colors, isDark),
+                      const Spacer(),
 
-                    const Spacer(),
-
-                    // --------------- CLOSE PAYMENT ----------------
-                    if (remaining > 0) _buildClosePaymentButton(colors),
-                  ],
+                      if (remaining > 0) _buildClosePaymentButton(colors),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          },
+        ),
       ),
     );
   }
@@ -102,9 +105,7 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
             "Remaining Amount",
             "₹${remaining.toStringAsFixed(0)}",
             colors,
-            color: remaining > 0
-                ? Colors.orange.shade700
-                : Colors.green.shade700,
+            color: remaining > 0 ? Colors.orange.shade700 : Colors.green.shade700,
           ),
         ],
       ),
@@ -161,8 +162,8 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
               color: isDark ? Colors.white : Colors.black,
             ),
             inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly, // only digits
-              _MaxAmountFormatter(remaining), // custom limiter
+              FilteringTextInputFormatter.digitsOnly,
+              _MaxAmountFormatter(remaining),
             ],
             decoration: InputDecoration(
               hintText: "Enter amount",
@@ -175,7 +176,6 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
               ),
             ),
           ),
-
 
           const SizedBox(height: 16),
 
@@ -228,17 +228,17 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
     }
 
     setState(() => _loading = true);
-
     final res = await tractorService.addClosePayment(
       activityId: widget.activityId,
       paymentAmount: amount,
     );
-
     setState(() => _loading = false);
 
+    if (!mounted) return;
+
     if (res.statusCode == 200) {
-      Navigator.pop(context, true);
       _showSnack("Payment added!", Colors.green);
+      Navigator.pop(context, true);
     } else {
       _showSnack("Failed to add payment", Colors.red);
     }
@@ -249,14 +249,16 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
 
     final res = await tractorService.addClosePayment(
       activityId: widget.activityId,
-      paymentAmount: remaining, // required
+      paymentAmount: remaining,
     );
 
     setState(() => _loading = false);
 
+    if (!mounted) return;
+
     if (res.statusCode == 200) {
-      Navigator.pop(context, true);
       _showSnack("Payment closed!", Colors.green);
+      Navigator.pop(context, true);
     } else {
       _showSnack("Failed to close payment", Colors.red);
     }
@@ -272,19 +274,23 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: TextStyle(color: colors.text.withOpacity(0.7))),
-          Text(value,
-              style: TextStyle(
-                fontWeight: bold ? FontWeight.bold : FontWeight.w500,
-                color: color ?? colors.text,
-              )),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.bold : FontWeight.w500,
+              color: color ?? colors.text,
+            ),
+          ),
         ],
       ),
     );
   }
 
   void _showSnack(String msg, Color color) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(msg), backgroundColor: color));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: color),
+    );
   }
 }
 
@@ -296,13 +302,11 @@ class _MaxAmountFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
-
     if (newValue.text.isEmpty) return newValue;
 
     final value = double.tryParse(newValue.text) ?? 0;
 
     if (value > max) {
-      // Reject input, keep old value
       return oldValue;
     }
 

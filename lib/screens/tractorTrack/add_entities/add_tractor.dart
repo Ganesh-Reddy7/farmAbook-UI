@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:convert';
-
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../widgets/common_bottom_sheet.dart';
 
 class AddTractorPage extends StatefulWidget {
   const AddTractorPage({Key? key}) : super(key: key);
@@ -12,7 +9,6 @@ class AddTractorPage extends StatefulWidget {
   @override
   State<AddTractorPage> createState() => _AddTractorPageState();
 }
-
 class _AddTractorPageState extends State<AddTractorPage> {
   final _formKey = GlobalKey<FormState>();
 
@@ -35,7 +31,6 @@ class _AddTractorPageState extends State<AddTractorPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
       builder: (context, child) {
-        // For Groww-style smooth, rounded calendar look
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
@@ -101,14 +96,13 @@ class _AddTractorPageState extends State<AddTractorPage> {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("⚠️ $e"),
+          content: Text("$e"),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -209,23 +203,37 @@ class _AddTractorPageState extends State<AddTractorPage> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: DropdownButtonFormField<String>(
-                      value: _status,
-                      items: _statuses
-                          .map(
-                            (s) => DropdownMenuItem(
-                          value: s,
-                          child: Text(s, style: TextStyle(color: colors.text)),
+                    child: GestureDetector(
+                      onTap: () async {
+                        final selected = await CommonBottomSheet.showSelector(
+                          context: context,
+                          options: _statuses,
+                          selectedValue: _status,
+                          background: colors.card,
+                          textColor: colors.text,
+                        );
+
+                        if (selected != null) {
+                          setState(() => _status = selected);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: colors.card,
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                      )
-                          .toList(),
-                      onChanged: (val) => setState(() => _status = val!),
-                      decoration: const InputDecoration(border: InputBorder.none),
-                      dropdownColor: colors.card,
-                      iconEnabledColor: Colors.green.shade600,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(_status, style: TextStyle(fontSize: 16, color: colors.text)),
+                            Icon(Icons.keyboard_arrow_down, color: Colors.green.shade600),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                    const SizedBox(height: 30),
 
                   Center(
                     child: ElevatedButton.icon(
@@ -317,7 +325,7 @@ class _AppColors {
 
   _AppColors(bool isDark)
       : background =
-  isDark ? const Color(0xFF121212) : const Color(0xFFFDFDFD),
+  isDark ? const Color(0xFF081712) : const Color(0xFFFDFDFD),
         card = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3),
         text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

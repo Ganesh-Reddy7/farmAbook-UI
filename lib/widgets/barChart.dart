@@ -37,7 +37,7 @@ class CommonBarChart extends StatefulWidget {
   State<CommonBarChart> createState() => _CommonBarChartState();
 }
 
-class _CommonBarChartState extends State<CommonBarChart> {
+class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProviderStateMixin{
   bool show1 = true;
   bool show2 = true;
 
@@ -104,9 +104,6 @@ class _CommonBarChartState extends State<CommonBarChart> {
     );
   }
 
-  // -----------------------------------
-  // Y & X Axis Titles
-  // -----------------------------------
   FlTitlesData _buildTitles(double interval) {
     final isDark = widget.isDark;
 

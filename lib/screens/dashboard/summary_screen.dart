@@ -1,10 +1,13 @@
-import 'dart:math';
+import 'dart:math' hide log;
 import 'dart:ui';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/SummaryData.dart';
 import '../../models/CropData.dart';
 import '../../services/reports_service.dart';
+import '../../widgets/common_bottom_sheet.dart';
+import '../../widgets/common_bottom_sheet_selector.dart';
 
 class SummaryScreen extends StatefulWidget {
   final Color accent;
@@ -44,6 +47,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
   Map<int, double> yearlyInvestments = {};
   Map<int, double> yearlyReturns = {};
 
+  List<double> chartValues = [];
+  List<int> chartYears = [];
+
   @override
   void initState() {
     super.initState();
@@ -54,21 +60,26 @@ class _SummaryScreenState extends State<SummaryScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Fetch summary data
       final fetchedSummary = await ReportsService().getYearlyReports(year: 5);
-
+      log("GKaaxx :: summary :: ,$fetchedSummary");
       if (fetchedSummary != null && fetchedSummary.isNotEmpty) {
         summaryList = fetchedSummary;
+
         _selectedYear = fetchedSummary.last.year;
 
         yearlyInvestments.clear();
         yearlyReturns.clear();
+
+        /// FIXED HERE ⬇️
+        chartYears = summaryList.map<int>((y) => y.year).toList();
+        chartValues = summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
+
         for (var e in summaryList) {
           yearlyInvestments[e.year] = e.totalInvestment;
           yearlyReturns[e.year] = e.totalReturns;
         }
 
-        // Fetch all-time crops (year = 0)
+        // Fetch all-time crops
         final allTimeCrops = await ReportsService().getCropsDistributionData(year: 0);
         allTimeTopCrops = allTimeCrops['topCrops'] ?? [];
         allTimeLowCrops = allTimeCrops['lowCrops'] ?? [];
@@ -77,7 +88,8 @@ class _SummaryScreenState extends State<SummaryScreen> {
         final yearCrops = await ReportsService().getCropsDistributionData(year: _selectedYear);
         selectedYearTopCrops = yearCrops['topCrops'] ?? [];
         selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
-      } else {
+      }
+      else {
         summaryList = [];
       }
     } catch (e) {
@@ -106,8 +118,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final yLabelStyle = TextStyle(color: widget.primaryText, fontSize: 12);
-    final reservedSize = getReservedYTitleSize(maxY, yLabelStyle);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness != Brightness.dark;
+    final colors = _AppColors(isDark);
     final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
 
     return Scaffold(
@@ -177,9 +190,7 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       : _buildLineChart(yearlyInvestments, yearlyReturns, lastFiveYears),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -191,33 +202,43 @@ class _SummaryScreenState extends State<SummaryScreen> {
                       color: widget.primaryText,
                     ),
                   ),
-                  DropdownButton<int>(
-                    dropdownColor: Colors.black87,
-                    value: _selectedYear,
-                    items: summaryList.map((e) {
-                      return DropdownMenuItem<int>(
-                        value: e.year,
-                        child: Text(
-                          e.year.toString(),
-                          style: TextStyle(color: widget.primaryText),
-                        ),
+                  GestureDetector(
+                    onTap: () async {
+                      final selectedYear = await CommonBottomSheetSelector.show<int>(
+                        context: context,
+                        title: "Select Year",
+                        items: summaryList.map((e) => e.year).toList(),
+                        displayText: (year) => year.toString(),
+                        backgroundColor: Colors.black87,
+                        textColor: widget.primaryText,
+                        selected: _selectedYear,
                       );
-                    }).toList(),
-                    onChanged: (year) async {
-                      setState(() => _selectedYear = year!);
-                      final yearCrops = await ReportsService()
-                          .getCropsDistributionData(year: _selectedYear);
-                      setState(() {
-                        selectedYearTopCrops = yearCrops['topCrops'] ?? [];
-                        selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
-                      });
+
+                      if (selectedYear != null) {
+                        setState(() => _selectedYear = selectedYear);
+
+                        final yearCrops = await ReportsService()
+                            .getCropsDistributionData(year: _selectedYear);
+
+                        setState(() {
+                          selectedYearTopCrops = yearCrops['topCrops'] ?? [];
+                          selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
+                        });
+                      }
                     },
+                    child: Row(
+                      children: [
+                        Text(
+                          _selectedYear.toString(),
+                          style: TextStyle(color: widget.primaryText, fontSize: 16),
+                        ),
+                        Icon(Icons.arrow_drop_down , color: widget.primaryText),
+                      ],
+                    ),
                   ),
                 ],
               ),
-
               const SizedBox(height: 16),
-
               // Pie Chart inside container
               Container(
                 padding: const EdgeInsets.all(16),
@@ -754,5 +775,17 @@ class _SummaryScreenState extends State<SummaryScreen> {
       ),
     );
   }
+}
 
+class _AppColors {
+  final Color background;
+  final Color card;
+  final Color text;
+  final Color divider;
+
+  _AppColors(bool isDark)
+      : background = isDark ? const Color(0xFF121212) : Colors.white,
+        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
+        text = isDark ? Colors.white : Colors.black87,
+        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }

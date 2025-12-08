@@ -1,15 +1,64 @@
-import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-class TractorDetailPage extends StatelessWidget {
+import '../../../services/TractorService/tractor_service.dart';
+import '../../../widgets/NegativeBarChart.dart';
+import '../../../widgets/barChart.dart';
+import '../../../widgets/sectionTitle.dart';
+
+class TractorDetailPage extends StatefulWidget {
   final Map<String, dynamic> tractor;
-  const TractorDetailPage({Key? key, required this.tractor}) : super(key: key);
+  const TractorDetailPage({super.key, required this.tractor});
+
+  @override
+  State<TractorDetailPage> createState() => _TractorDetailPageState();
+}
+
+class _TractorDetailPageState extends State<TractorDetailPage> {
+  final TractorService _tractorService = TractorService();
+  late final Map<String, dynamic> tractor = widget.tractor;
+  List<String> monthlyChartLabels = [];
+  List<double> monthlyReturns = [];
+  List<double> monthlyExpenses = [];
+  List<double> monthlyAcresWorked = [];
+  List<double> monthlyFuelConsumed= [];
+  List<double> monthlyProfit = [];
+  @override
+  void initState() {
+    super.initState();
+    _loadMonthlyChartData();
+  }
+  Future<void> _loadMonthlyChartData() async {
+    try {
+      int year = DateTime.now().year;
+      final data = await _tractorService.getMonthlyTractorStats(
+        year: year,
+        tractorId: tractor['id'],
+      );
+      if (data.isNotEmpty) {
+        setState(() {
+          monthlyChartLabels = data.map((m) => m["month"].toString()).toList();
+          monthlyReturns =
+              data.map<double>((m) => (m["returnsAmount"] as num).toDouble()).toList();
+          monthlyExpenses =
+              data.map<double>((m) => (m["expenseAmount"] as num).toDouble()).toList();
+          monthlyAcresWorked =
+              data.map<double>((m) => (m["acresWorked"] as num).toDouble()).toList();
+          monthlyFuelConsumed =
+              data.map<double>((m) => (m["fuelLitres"] as num).toDouble()).toList();
+          monthlyProfit =
+              data.map<double>((m) => (m["totalProfit"] as num).toDouble()).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading monthly chart: $e");
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
+    final Map<String, dynamic> tractor = widget.tractor;
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
-
-    // 🌿 Match TractorScreen Theme
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
     final Color textColor = isDark ? Colors.white : Colors.black87;
     final Color secondaryText =
@@ -18,23 +67,8 @@ class TractorDetailPage extends StatelessWidget {
     isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
 
     final double screenWidth = MediaQuery.of(context).size.width;
+    final colors = _AppColors(isDark);
 
-    final List<String> months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec"
-    ];
-
-    // ✅ Type-safe extraction
     final String model = (tractor['model'] ?? 'Unknown Model').toString();
     final String serial = (tractor['serialNumber'] ?? '-').toString();
     final String make = (tractor['make'] ?? 'N/A').toString();
@@ -50,23 +84,6 @@ class TractorDetailPage extends StatelessWidget {
     final double area = toDouble(tractor['totalAreaWorked']);
     final double profit = toDouble(tractor['netProfit']);
 
-    final monthlyExpenses = (tractor['monthlyExpenses'] ??
-        [1200, 1500, 1600, 1800, 2000, 1900, 1700, 1500, 1400, 1300, 1200, 1100])
-        .map<double>((e) => toDouble(e))
-        .toList();
-    final monthlyReturns = (tractor['monthlyReturns'] ??
-        [1500, 1800, 2000, 2200, 2500, 2400, 2200, 2000, 1900, 1700, 1500, 1300])
-        .map<double>((e) => toDouble(e))
-        .toList();
-    final monthlyFuel = (tractor['monthlyFuel'] ??
-        [60, 70, 75, 80, 90, 85, 78, 70, 65, 60, 55, 50])
-        .map<double>((e) => toDouble(e))
-        .toList();
-    final monthlyArea = (tractor['monthlyArea'] ??
-        [2, 2.3, 2.5, 3, 3.2, 3.5, 3.3, 3, 2.8, 2.5, 2.2, 2])
-        .map<double>((e) => toDouble(e))
-        .toList();
-
     double cardWidth = (screenWidth - 48) / 2;
     if (screenWidth < 350) cardWidth = (screenWidth - 40) / 2;
 
@@ -78,6 +95,14 @@ class TractorDetailPage extends StatelessWidget {
         iconTheme: IconThemeData(color: textColor),
         elevation: 0,
         backgroundColor: Colors.transparent,
+        actions: [
+          // IconButton(
+          //   icon: const Icon(Icons.edit_rounded),
+          //   onPressed: () {
+          //     debugPrint('Edit button tapped for $model');
+          //   },
+          // ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -85,7 +110,6 @@ class TractorDetailPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🌾 Tractor Overview
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -156,19 +180,42 @@ class TractorDetailPage extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // 💹 Key Metric Cards
             Wrap(
               spacing: 12,
               runSpacing: 12,
               children: [
-                _metricCard("Total Expenses", "₹${expenses.toStringAsFixed(2)}",
-                    Icons.money_off, Colors.red, isDark, cardWidth, borderColor),
-                _metricCard("Total Returns", "₹${returns.toStringAsFixed(2)}",
-                    Icons.attach_money, Colors.green, isDark, cardWidth, borderColor),
-                _metricCard("Fuel Used", "${fuel.toStringAsFixed(1)} L",
-                    Icons.local_gas_station, Colors.orange, isDark, cardWidth, borderColor),
-                _metricCard("Area Worked", "${area.toStringAsFixed(2)} acres",
-                    Icons.terrain, Colors.blue, isDark, cardWidth, borderColor),
+                _metricCard(
+                    "Total Expenses",
+                    "₹${expenses.toStringAsFixed(2)}",
+                    Icons.money_off,
+                    Colors.red,
+                    isDark,
+                    cardWidth,
+                    borderColor),
+                _metricCard(
+                    "Total Returns",
+                    "₹${returns.toStringAsFixed(2)}",
+                    Icons.attach_money,
+                    Colors.green,
+                    isDark,
+                    cardWidth,
+                    borderColor),
+                _metricCard(
+                    "Fuel Used",
+                    "${fuel.toStringAsFixed(1)} L",
+                    Icons.local_gas_station,
+                    Colors.orange,
+                    isDark,
+                    cardWidth,
+                    borderColor),
+                _metricCard(
+                    "Area Worked",
+                    "${area.toStringAsFixed(2)} acres",
+                    Icons.terrain,
+                    Colors.blue,
+                    isDark,
+                    cardWidth,
+                    borderColor),
                 _metricCard(
                     "Net Profit",
                     "₹${profit.toStringAsFixed(2)}",
@@ -179,44 +226,55 @@ class TractorDetailPage extends StatelessWidget {
                     borderColor),
               ],
             ),
-
             const SizedBox(height: 28),
-
-            // 📊 Charts
-            _chartSection(
-              title: "Monthly Expenses vs Returns",
-              labels: months,
-              firstData: monthlyExpenses,
-              secondData: monthlyReturns,
-              firstColor: Colors.redAccent,
-              secondColor: Colors.green,
-              firstLabel: "Expenses",
-              secondLabel: "Returns",
+            const SizedBox(height: 8),
+            SectionTitle(title: "Monthly Returns and Expenses (₹)", isDark: isDark),
+            const SizedBox(height: 16),
+            CommonBarChart(
               isDark: isDark,
-              borderColor: borderColor,
+              chartBg: colors.card,
+              labels: monthlyChartLabels,
+              values: monthlyReturns,
+              values2: monthlyExpenses,
+              legend1: "Returns",
+              legend2: "Expenses",
+              barColor2: Colors.blue,
+              barColor: Colors.green,
+              barWidth: 8,
             ),
-
-            const SizedBox(height: 28),
-
-            _chartSection(
-              title: "Monthly Fuel vs Area Worked",
-              labels: months,
-              firstData: monthlyFuel,
-              secondData: monthlyArea,
-              firstColor: Colors.orangeAccent,
-              secondColor: Colors.blueAccent,
-              firstLabel: "Fuel (L)",
-              secondLabel: "Area (Acre)",
+            const SizedBox(height: 16),
+            SectionTitle(title: "Monthly Fuel and Acres", isDark: isDark),
+            const SizedBox(height: 16),
+            CommonBarChart(
               isDark: isDark,
-              borderColor: borderColor,
+              chartBg: colors.card,
+              labels: monthlyChartLabels,
+              values: monthlyFuelConsumed,
+              values2: monthlyAcresWorked,
+              legend1: "Fuel",
+              legend2: "Acres Worked",
+              barColor: Colors.limeAccent,
+              barColor2: Colors.brown,
+              barWidth: 8,
             ),
+            const SizedBox(height: 16),
+            SectionTitle(title: "Monthly Profit (₹)", isDark: isDark),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 300,
+              child: SingleMetricChart(
+                years: monthlyChartLabels,
+                values: monthlyProfit,
+                isDark: isDark,
+              ),
+            ),
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  // 🌾 Metric Card
   Widget _metricCard(String title, String value, IconData icon, Color color,
       bool isDark, double width, Color borderColor) {
     final Color textColor = isDark ? Colors.white : Colors.black87;
@@ -255,155 +313,17 @@ class TractorDetailPage extends StatelessWidget {
       ),
     );
   }
+}
 
-  // 📈 Chart Section
-  Widget _chartSection({
-    required String title,
-    required List<String> labels,
-    required List<double> firstData,
-    required List<double> secondData,
-    required Color firstColor,
-    required Color secondColor,
-    required String firstLabel,
-    required String secondLabel,
-    required bool isDark,
-    required Color borderColor,
-  }) {
-    final double chartHeight = 260;
+class _AppColors {
+  final Color background;
+  final Color card;
+  final Color text;
+  final Color divider;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: isDark ? Colors.white : Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          height: chartHeight,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: borderColor),
-          ),
-          child: Column(
-            children: [
-              // 🔹 Legend Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _legendDot(firstColor, firstLabel),
-                  const SizedBox(width: 16),
-                  _legendDot(secondColor, secondLabel),
-                ],
-              ),
-              const SizedBox(height: 12),
-
-              // 🔹 Chart
-              Expanded(
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    gridData: const FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          reservedSize: 40,
-                          getTitlesWidget: (value, _) => Padding(
-                            padding: const EdgeInsets.only(right: 4),
-                            child: Text(
-                              value.toInt().toString(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.grey.shade300   // ✅ brightened for dark mode
-                                    : Colors.grey.shade600,   // ✅ softer for light mode
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, _) {
-                            final index = value.toInt();
-                            if (index < 0 || index >= labels.length) {
-                              return const SizedBox();
-                            }
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                labels[index],
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                  color: isDark
-                                      ? Colors.grey.shade400
-                                      : Colors.grey.shade700,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      rightTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                      topTitles: const AxisTitles(
-                          sideTitles: SideTitles(showTitles: false)),
-                    ),
-                    barGroups: List.generate(labels.length, (i) {
-                      return BarChartGroupData(
-                        x: i,
-                        barsSpace: 6,
-                        barRods: [
-                          BarChartRodData(
-                            toY: firstData[i],
-                            color: firstColor,
-                            width: 10,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                          BarChartRodData(
-                            toY: secondData[i],
-                            color: secondColor,
-                            width: 10,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-
-  Widget _legendDot(Color color, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration:
-          BoxDecoration(color: color, borderRadius: BorderRadius.circular(5)),
-        ),
-        const SizedBox(width: 6),
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-      ],
-    );
-  }
+  _AppColors(bool isDark)
+      : background = isDark ? const Color(0xFF121212) : Colors.white,
+        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
+        text = isDark ? Colors.white : Colors.black87,
+        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }
