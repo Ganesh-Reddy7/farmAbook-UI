@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/crop.dart';
 import '../../services/crop_service.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/barChart.dart';
+import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
+import '../../widgets/sectionTitle.dart';
 import 'add_entities/add_crop_screen.dart';
 import 'crop_details_screen.dart';
 
@@ -31,11 +35,16 @@ class CropsScreen extends StatefulWidget {
   _CropsScreenState createState() => _CropsScreenState();
 }
 
-class _CropsScreenState extends State<CropsScreen> {
+class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   int _selectedYear = DateTime.now().year;
-  bool _isLineChart = false;
+  bool _isLineChart = true;
 
   Map<int, List<Crop>> cropsByYear = {};
+  List<double> chartInvestments = [];
+  List<double> chartReturns = [];
+  List<String> cropList = [];
 
   @override
   void initState() {
@@ -45,8 +54,12 @@ class _CropsScreenState extends State<CropsScreen> {
 
   Future<void> _fetchCropsForYear(int year) async {
     final fetched = await CropService().getCropsByYear(year);
-    log("Crops fetched: $fetched");
-    setState(() => cropsByYear[year] = fetched);
+    chartInvestments = fetched.map((c) => c.totalInvested).toList();
+    chartReturns = fetched.map((c) => c.totalReturns).toList();
+    cropList = fetched.map((c) => c.name).toList();
+    setState(() =>
+      cropsByYear[year] = fetched
+    );
   }
 
   Future<void> _refreshCurrentYearCrops() async {
@@ -57,6 +70,9 @@ class _CropsScreenState extends State<CropsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     final currentYearCrops = cropsByYear[_selectedYear] ?? [];
     final totalArea = currentYearCrops.fold<double>(0, (sum, c) => sum + c.area);
     final totalQty = currentYearCrops.fold<double>(0, (sum, c) => sum + (c.value ?? 0));
@@ -74,9 +90,7 @@ class _CropsScreenState extends State<CropsScreen> {
                 fontSize: 20)),
         actions: [
           IconButton(
-            icon: Icon(
-                _isLineChart ? Icons.bar_chart : Icons.show_chart,
-                color: widget.accent),
+            icon: Icon(_isLineChart ?  Icons.show_chart : Icons.bar_chart, color: widget.accent),
             onPressed: () => setState(() => _isLineChart = !_isLineChart),
           ),
         ],
@@ -88,57 +102,47 @@ class _CropsScreenState extends State<CropsScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // -------------------- Main Chart --------------------
-              SizedBox(
-                height: 280,
-                child
-                    : currentYearCrops.isEmpty
-                    ? Center(
-                  child: Text(
-                    "No Crops data available",
-                    style: TextStyle(
-                        color: widget.secondaryText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold),
-                  ),
+              if(_isLineChart)
+                CommonBarChart(
+                  isDark: isDark,
+                  chartBg: colors.card,
+                  labels: cropList,
+                  values: chartInvestments,
+                  values2: chartReturns,
+                  legend1: "Total Investment",
+                  legend2: "Total Returns",
+                  barColor2: Colors.green,
+                  barColor: Colors.orange,
+                  barWidth: 16,
                 )
-                    : Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: widget.cardGradientStart.withOpacity(0.05),
-                    border: Border.all(color: widget.cardBorder),
-                  ),
-                  child: _isLineChart
-                      ? _buildLineChart(currentYearCrops)
-                      : _buildBarChart(currentYearCrops),
+              else
+                CommonLineChart(
+                  isDark: isDark,
+                  labels: cropList,
+                  values: chartInvestments,
+                  values2: chartReturns,
+                  legend1: "Total Investment",
+                  legend2: "Total Returns",
+                  lineColor1: widget.accent,
+                  lineColor2: Colors.orangeAccent,
                 ),
-              ),
-              const SizedBox(height: 20),
-
+              const SizedBox(height: 12),
+              Divider(color: colors.divider),
+              const SizedBox(height: 12),
               // -------------------- Year Selector --------------------
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Select Year:",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: widget.primaryText,
-                    ),
-                  ),
-
+                  SectionTitle(title: "Select Year:", isDark: isDark , fontSize:16),
                   GestureDetector(
                     onTap: () async {
                       final years = List.generate(5, (i) => DateTime.now().year - i);
-
                       final selectedYear = await CommonBottomSheetSelector.show<int>(
                         context: context,
                         title: "Select Year",
                         items: years,
                         displayText: (year) => year.toString(),
-                        backgroundColor: Colors.black87,
+                        backgroundColor: colors.card,
                         textColor: widget.primaryText,
                         selected: _selectedYear,
                       );
@@ -168,7 +172,6 @@ class _CropsScreenState extends State<CropsScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-
               _totalAreaQuantityCard(totalArea, totalQty),
               const SizedBox(height: 20),
 
@@ -184,13 +187,7 @@ class _CropsScreenState extends State<CropsScreen> {
                   height: 220,
                   child: currentYearCrops.isEmpty
                       ? Center(
-                    child: Text(
-                      "No pie chart data available",
-                      style: TextStyle(
-                          color: widget.secondaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                    ),
+                    child:SectionTitle(title: "No pie chart data available", isDark: isDark , fontSize:16),
                   )
                       : PieChart(
                     PieChartData(
@@ -220,7 +217,6 @@ class _CropsScreenState extends State<CropsScreen> {
 
               const SizedBox(height: 20),
 
-              // -------------------- Crop List --------------------
               currentYearCrops.isEmpty
                   ? Container(
                 width: double.infinity,
@@ -241,16 +237,9 @@ class _CropsScreenState extends State<CropsScreen> {
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.info_outline,
-                        size: 40, color: widget.accent),
+                    Icon(Icons.info_outline, size: 40, color: widget.accent),
                     const SizedBox(height: 12),
-                    Text(
-                      "No crops available",
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: widget.secondaryText),
-                    ),
+                    SectionTitle(title: "No crops available", isDark: isDark , fontSize:16),
                     const SizedBox(height: 6),
                     Text(
                       "Please add crops to view details.",
@@ -274,6 +263,7 @@ class _CropsScreenState extends State<CropsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         mini: true,
+        heroTag: "add-crop",
         backgroundColor: widget.accent,
         onPressed: () async {
           final result = await Navigator.push(
@@ -390,164 +380,6 @@ class _CropsScreenState extends State<CropsScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  // -------------------- Bar Chart --------------------
-  Widget _buildBarChart(List<Crop> crops) {
-    if (crops.isEmpty) return const SizedBox(height: 250);
-
-    double maxY = safeMaxY(
-      crops
-          .map((c) => [c.totalInvested ?? 0, c.totalReturns ?? 0])
-          .expand((e) => e)
-          .fold(0.0, (a, b) => a > b ? a : b),
-    );
-
-    return BarChart(
-      BarChartData(
-        maxY: maxY,
-        minY: 0,
-        groupsSpace: 12,
-        barGroups: List.generate(crops.length, (index) {
-          final crop = crops[index];
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: crop.totalInvested ?? 0,
-                width: 12,
-                color: Colors.redAccent,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              BarChartRodData(
-                toY: crop.totalReturns ?? 0,
-                width: 12,
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(4),
-              ),
-            ],
-            barsSpace: 6,
-          );
-        }),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= crops.length) return const SizedBox();
-                return Text(
-                  crops[index].name,
-                  style: TextStyle(color: widget.primaryText, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 50,
-              getTitlesWidget: (value, meta) => Text(
-                "₹${value.toInt()}",
-                style: TextStyle(color: widget.primaryText, fontSize: 12),
-                textAlign: TextAlign.right,
-              ),
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        gridData: FlGridData(show: true, drawVerticalLine: false),
-        borderData: FlBorderData(show: false),
-      ),
-    );
-  }
-
-  // -------------------- Line Chart --------------------
-  Widget _buildLineChart(List<Crop> crops) {
-    if (crops.isEmpty) return const SizedBox(height: 250);
-
-    double maxY = safeMaxY(
-      crops
-          .map((c) => [c.totalInvested ?? 0, c.totalReturns ?? 0])
-          .expand((e) => e)
-          .fold(0.0, (a, b) => a > b ? a : b),
-    );
-
-    final investedSpots = crops
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), (e.value.totalInvested ?? 0)))
-        .toList();
-
-    final returnsSpots = crops
-        .asMap()
-        .entries
-        .map((e) => FlSpot(e.key.toDouble(), (e.value.totalReturns ?? 0)))
-        .toList();
-
-    return LineChart(
-      LineChartData(
-        maxY: maxY,
-        minY: 0,
-        lineBarsData: [
-          LineChartBarData(
-            spots: investedSpots,
-            isCurved: true,
-            color: Colors.redAccent,
-            barWidth: 3,
-            dotData: FlDotData(show: true),
-          ),
-          LineChartBarData(
-            spots: returnsSpots,
-            isCurved: true,
-            color: Colors.green,
-            barWidth: 3,
-            dotData: FlDotData(show: true),
-          ),
-        ],
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= crops.length) return const SizedBox();
-                return Text(
-                  crops[index].name,
-                  style: TextStyle(color: widget.primaryText, fontSize: 12),
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 50,
-              getTitlesWidget: (value, meta) => Text(
-                "₹${value.toInt()}",
-                style: TextStyle(color: widget.primaryText, fontSize: 12),
-                textAlign: TextAlign.right,
-              ),
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        gridData: FlGridData(show: true, drawVerticalLine: false),
-        borderData: FlBorderData(show: false),
       ),
     );
   }

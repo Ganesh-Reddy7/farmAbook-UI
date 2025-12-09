@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/crop.dart';
@@ -6,8 +5,10 @@ import '../../models/investment.dart';
 import '../../models/return_model.dart';
 import '../../services/crop_service.dart';
 import '../../services/return_service.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/barChart.dart';
 import '../../widgets/frosted_button.dart';
-import 'package:sticky_grouped_list/sticky_grouped_list.dart';
+import '../../widgets/sectionTitle.dart';
 
 
 class CropDetailScreen extends StatefulWidget {
@@ -57,8 +58,6 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
     try {
       final inv = await CropService().getCropInvestmentByYear(date:crop.plantedDate, cropId:crop.id);
       final ret = await ReturnService().getReturnsByCropAndYear(cropId:crop.id , year:crop.plantedDate!.year,);
-      log("GKaaxx :: inv :: $inv");
-
       setState(() {
         investments = inv;
         returnsData = ret;
@@ -114,6 +113,10 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
+
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
       appBar: AppBar(
@@ -223,16 +226,8 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
             ),
 
             const SizedBox(height: 28),
-
+            SectionTitle(title: "Investment vs Returns", isDark: isDark , fontSize:16),
             // 🥧 Pie Chart Section
-            Text(
-              "Investment vs Returns",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: widget.primaryText,
-              ),
-            ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
@@ -245,25 +240,15 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
             ),
 
             const SizedBox(height: 32),
-
-            // 📊 Bar Chart Section
-            Text(
-              "Area vs Quantity",
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-                color: widget.primaryText,
-              ),
-            ),
+            SectionTitle(title: "Area vs Quantity", isDark: isDark , fontSize:16),
             const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: widget.cardGradientEnd.withOpacity(0.05),
-                border: Border.all(color: widget.cardBorder),
-              ),
-              child: SizedBox(height: 220, child: _buildBarChart()),
+            CommonBarChart(
+              isDark: isDark,
+              chartBg: colors.card,
+              labels: ["Area" , "Quantity"],
+              values: [crop.area , ?crop?.value],
+              barColor: Colors.green,
+              barWidth: 16,
             ),
             const SizedBox(height: 24),
             Row(
@@ -300,28 +285,11 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
               _buildInvestmentList()
             else
               _buildReturnsList(),
-
           ],
         ),
       ),
     );
 
-  }
-
-
-  Widget _buildInfoCell(String label, String value,
-      {Color? accentColor, VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(4.0),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: TextStyle(color: widget.primaryText, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 2),
-          Text(value, style: TextStyle(color: accentColor ?? widget.secondaryText)),
-        ]),
-      ),
-    );
   }
 
   Widget _buildPieChart() {
@@ -358,70 +326,6 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
       ),
     );
   }
-
-  Widget _buildBarChart() {
-    final area = crop.area;
-    final quantity = crop.value ?? 0;
-    final maxY = (area > quantity ? area : quantity) * 1.5;
-
-    final isDark = Theme.of(context).brightness != Brightness.dark;
-    final yAxisColor = isDark ? Colors.white : Colors.black87;
-
-    return BarChart(
-      BarChartData(
-        maxY: maxY,
-        gridData: FlGridData(show: true, drawVerticalLine: false),
-        borderData: FlBorderData(show: false),
-        barGroups: [
-          BarChartGroupData(x: 0, barRods: [
-            BarChartRodData(
-                toY: area,
-                gradient: LinearGradient(
-                    colors: [widget.accent, widget.accent.withOpacity(0.6)]),
-                width: 20,
-                borderRadius: BorderRadius.circular(6))
-          ]),
-          BarChartGroupData(x: 1, barRods: [
-            BarChartRodData(
-                toY: quantity,
-                gradient: LinearGradient(
-                    colors: [widget.accent.withOpacity(0.7), widget.accent]),
-                width: 20,
-                borderRadius: BorderRadius.circular(6))
-          ]),
-        ],
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  value.toInt() == 0 ? "Area" : "Quantity",
-                  style: TextStyle(
-                      color: yAxisColor, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 40,
-              interval: maxY / 5,
-              getTitlesWidget: (value, meta) => Text(
-                value.toStringAsFixed(1),
-                style: TextStyle(color: yAxisColor),
-              ),
-            ),
-          ),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-      ),
-    );
-  }
-
 
   Widget _buildInfoTile({
     required IconData icon,

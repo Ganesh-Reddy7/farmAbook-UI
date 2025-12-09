@@ -5,8 +5,8 @@ class Crop {
   final double area; // in acres or hectares
   final double? value; // optional
   final int? farmerId;
-  final double? totalInvested;
-  final double? totalReturns;
+  final double totalInvested;
+  final double totalReturns;
 
   Crop({
     required this.id,
@@ -15,8 +15,8 @@ class Crop {
     required this.area,
     this.value,
     this.farmerId,
-    this.totalInvested,
-    this.totalReturns
+    required this.totalInvested,
+    required this.totalReturns
   });
 
   factory Crop.fromJson(Map<String, dynamic> json) {

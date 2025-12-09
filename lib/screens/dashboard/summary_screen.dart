@@ -1,13 +1,15 @@
 import 'dart:math' hide log;
 import 'dart:ui';
-import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../models/SummaryData.dart';
 import '../../models/CropData.dart';
 import '../../services/reports_service.dart';
-import '../../widgets/common_bottom_sheet.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/barChart.dart';
+import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
+import '../../widgets/sectionTitle.dart';
 
 class SummaryScreen extends StatefulWidget {
   final Color accent;
@@ -33,7 +35,9 @@ class SummaryScreen extends StatefulWidget {
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
-class _SummaryScreenState extends State<SummaryScreen> {
+class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   List<SummaryData> summaryList = [];
   int _selectedYear = 0;
   bool _showBarChart = true;
@@ -47,8 +51,9 @@ class _SummaryScreenState extends State<SummaryScreen> {
   Map<int, double> yearlyInvestments = {};
   Map<int, double> yearlyReturns = {};
 
-  List<double> chartValues = [];
-  List<int> chartYears = [];
+  List<double> chartInvestments = [];
+  List<double> chartReturns = [];
+  List<String> chartYears = [];
 
   @override
   void initState() {
@@ -61,24 +66,18 @@ class _SummaryScreenState extends State<SummaryScreen> {
 
     try {
       final fetchedSummary = await ReportsService().getYearlyReports(year: 5);
-      log("GKaaxx :: summary :: ,$fetchedSummary");
       if (fetchedSummary != null && fetchedSummary.isNotEmpty) {
         summaryList = fetchedSummary;
-
         _selectedYear = fetchedSummary.last.year;
-
         yearlyInvestments.clear();
         yearlyReturns.clear();
-
-        /// FIXED HERE ⬇️
-        chartYears = summaryList.map<int>((y) => y.year).toList();
-        chartValues = summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
-
+        chartYears = summaryList.map<String>((y) => y.year.toString()).toList();
+        chartInvestments = summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
+        chartReturns = summaryList.map<double>((y) => y.totalReturns.toDouble()).toList();
         for (var e in summaryList) {
           yearlyInvestments[e.year] = e.totalInvestment;
           yearlyReturns[e.year] = e.totalReturns;
         }
-
         // Fetch all-time crops
         final allTimeCrops = await ReportsService().getCropsDistributionData(year: 0);
         allTimeTopCrops = allTimeCrops['topCrops'] ?? [];
@@ -120,23 +119,14 @@ class _SummaryScreenState extends State<SummaryScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
-    final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
-
+    final colors = AppColors.fromTheme(isDark);
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: Text(
-          "Summary (Investment & Returns)",
-          style: TextStyle(
-            color: widget.primaryText,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: SectionTitle(title: "Summary (Investment & Returns)", isDark: isDark , fontSize:16),
         actions: [
           IconButton(
             icon: Icon(
@@ -176,32 +166,38 @@ class _SummaryScreenState extends State<SummaryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+              const SizedBox(height: 12),
+              if(_showBarChart)
+                CommonBarChart(
+                  isDark: isDark,
+                  chartBg: colors.card,
+                  labels: chartYears,
+                  values: chartInvestments,
+                  values2: chartReturns,
+                  legend1: "Total Investment",
+                  legend2: "Total Returns",
+                  barColor2: Colors.green,
+                  barColor: Colors.orange,
+                  barWidth: 16,
+                )
+              else
+                CommonLineChart(
+                  isDark: isDark,
+                  labels: chartYears,
+                  values: chartInvestments,
+                  values2: chartReturns,
+                  legend1: "Total Investment",
+                  legend2: "Total Returns",
+                  lineColor1: widget.accent,
+                  lineColor2: Colors.orangeAccent,
                 ),
-                child: SizedBox(
-                  height: 250,
-                  child: _showBarChart
-                      ?  _buildBarChart(yearlyInvestments, yearlyReturns, lastFiveYears)
-                      : _buildLineChart(yearlyInvestments, yearlyReturns, lastFiveYears),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              Divider(color: colors.divider),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Select Year:",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: widget.primaryText,
-                    ),
-                  ),
+                  SectionTitle(title: "Select Year :", isDark: isDark , fontSize:16),
                   GestureDetector(
                     onTap: () async {
                       final selectedYear = await CommonBottomSheetSelector.show<int>(
@@ -209,17 +205,13 @@ class _SummaryScreenState extends State<SummaryScreen> {
                         title: "Select Year",
                         items: summaryList.map((e) => e.year).toList(),
                         displayText: (year) => year.toString(),
-                        backgroundColor: Colors.black87,
+                        backgroundColor: colors.card,
                         textColor: widget.primaryText,
                         selected: _selectedYear,
                       );
-
                       if (selectedYear != null) {
                         setState(() => _selectedYear = selectedYear);
-
-                        final yearCrops = await ReportsService()
-                            .getCropsDistributionData(year: _selectedYear);
-
+                        final yearCrops = await ReportsService().getCropsDistributionData(year: _selectedYear);
                         setState(() {
                           selectedYearTopCrops = yearCrops['topCrops'] ?? [];
                           selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
@@ -252,61 +244,27 @@ class _SummaryScreenState extends State<SummaryScreen> {
                   child: _buildInvestmentReturnPieChart(),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               _buildSummaryCard(
                 _selectedYear,
                 summaryList.firstWhere((e) => e.year == _selectedYear),
               ),
-
               const SizedBox(height: 24),
-
               // All-Time Crops
-              Text(
-                "All-Time Top Performing Crops",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
-              ),
+              SectionTitle(title: "All-Time Top Performing Crops", isDark: isDark , fontSize:16),
               const SizedBox(height: 8),
               _buildCropCards(allTimeTopCrops),
-
               const SizedBox(height: 16),
-
-              Text(
-                "All-Time Low Performing Crops",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
-              ),
+              SectionTitle(title: "All-Time Low Performing Crops", isDark: isDark , fontSize:16),
               const SizedBox(height: 8),
               _buildCropCards(allTimeLowCrops),
-
               const SizedBox(height: 24),
-
               // Selected Year Crops
-              Text(
-                "Top Performing Crops in $_selectedYear",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
-              ),
+              SectionTitle(title: "Top Performing Crops in $_selectedYear", isDark: isDark , fontSize:16),
               const SizedBox(height: 8),
               _buildCropCards(selectedYearTopCrops),
-
               const SizedBox(height: 16),
-
-              Text(
-                "Low Performing Crops in $_selectedYear",
-                style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
-              ),
+              SectionTitle(title: "Low Performing Crops in $_selectedYear", isDark: isDark , fontSize:16),
               const SizedBox(height: 8),
               _buildCropCards(selectedYearLowCrops),
             ],
@@ -317,7 +275,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
   }
 
   Widget _buildCropCards(List<CropData> crops) {
-    // -------------------- No Data Card --------------------
     if (crops.isEmpty) {
       return Container(
         width: double.infinity,
@@ -362,7 +319,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
       );
     }
 
-    // -------------------- Data Cards --------------------
     return Column(
       children: crops.map((crop) {
         return Container(
@@ -395,7 +351,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // -------------------- Left Info --------------------
                     Flexible(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,7 +432,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
     );
   }
 
-  // ----------------- Helper to calculate left reserved size -----------------
   double getLeftReservedSize(double maxValue, TextStyle style) {
     final text = "₹${maxValue.toInt()}"; // largest Y label
     final tp = TextPainter(
@@ -485,172 +439,6 @@ class _SummaryScreenState extends State<SummaryScreen> {
       textDirection: TextDirection.ltr,
     )..layout();
     return tp.width + 8; // some padding
-  }
-
-// ----------------- Bar Chart -----------------
-  Widget _buildBarChart(
-      Map<int, double> investments,
-      Map<int, double> returns,
-      List<int> lastYears,
-      ) {
-    final yLabelStyle = TextStyle(color: widget.primaryText, fontSize: 12);
-    final reservedSize = getLeftReservedSize(maxY, yLabelStyle);
-
-    return BarChart(
-      BarChartData(
-        maxY: maxY,
-        minY: 0,
-        alignment: BarChartAlignment.spaceAround,
-        barGroups: List.generate(lastYears.length, (index) {
-          final year = lastYears[index];
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: investments[year] ?? 0,
-                width: 14,
-                gradient: LinearGradient(colors: [widget.accent, Colors.greenAccent]),
-              ),
-              BarChartRodData(
-                toY: returns[year] ?? 0,
-                width: 14,
-                gradient: LinearGradient(colors: [Colors.orange, Colors.red]),
-              ),
-            ],
-            barsSpace: 6,
-          );
-        }),
-        titlesData: FlTitlesData(
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                if (value.toInt() >= lastYears.length) return Container();
-                return Text(
-                  lastYears[value.toInt()].toString(),
-                  style: yLabelStyle,
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: reservedSize,
-              interval: maxY / 5,
-              getTitlesWidget: (value, meta) => Text(
-                "₹${value.toInt()}",
-                style: yLabelStyle,
-              ),
-            ),
-          ),
-        ),
-        borderData: FlBorderData(show: false),
-        gridData: FlGridData(show: true),
-      ),
-    );
-  }
-
-  Widget _buildLineChart(
-      Map<int, double> investments,
-      Map<int, double> returns,
-      List<int> lastYears,
-      ) {
-    if (lastYears.isEmpty) {
-      return Center(
-        child: Text(
-          "No chart data",
-          style: TextStyle(color: widget.secondaryText),
-        ),
-      );
-    }
-
-    // Generate spots using exact indices to avoid duplicates
-    final spotsInvestment = lastYears.asMap().entries
-        .map((e) => FlSpot(e.key.toDouble(), investments[e.value] ?? 0))
-        .toList();
-
-    final spotsReturns = lastYears.asMap().entries
-        .map((e) => FlSpot(e.key.toDouble(), returns[e.value] ?? 0))
-        .toList();
-
-    final yLabelStyle = TextStyle(color: widget.primaryText, fontSize: 12);
-
-    return LineChart(
-      LineChartData(
-        minX: 0,
-        maxX: (lastYears.length - 1).toDouble(),
-        minY: 0,
-        maxY: maxY,
-        gridData: FlGridData(show: true),
-        borderData: FlBorderData(show: false),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 28,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                final index = value.toInt();
-                if (index < 0 || index >= lastYears.length) return const SizedBox();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Text(
-                    lastYears[index].toString(),
-                    style: yLabelStyle,
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 50,
-              getTitlesWidget: (value, meta) {
-                return Text(
-                  "₹${value.toInt()}",
-                  style: yLabelStyle,
-                );
-              },
-            ),
-          ),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spotsInvestment,
-            isCurved: true,
-            gradient: LinearGradient(colors: [widget.accent, Colors.greenAccent]),
-            barWidth: 4,
-            dotData: FlDotData(show: true),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors: [widget.accent.withOpacity(0.2), Colors.transparent],
-              ),
-            ),
-          ),
-          LineChartBarData(
-            spots: spotsReturns,
-            isCurved: true,
-            gradient: LinearGradient(colors: [Colors.orange, Colors.red]),
-            barWidth: 4,
-            dotData: FlDotData(show: true),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors: [Colors.orange.withOpacity(0.2), Colors.transparent],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildInvestmentReturnPieChart() {
@@ -775,17 +563,4 @@ class _SummaryScreenState extends State<SummaryScreen> {
       ),
     );
   }
-}
-
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-  final Color divider;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : Colors.white,
-        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87,
-        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }

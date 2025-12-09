@@ -172,7 +172,6 @@ class InvestmentService {
     final uri = Uri.parse(
         "$baseUrl/investments/financial-year/range/summary/$farmerId?startYear=$startYear&endYear=$endYear"
     );
-
     final response = await http.get(uri, headers: {
       "Authorization": "Bearer $token",
       "Content-Type": "application/json"

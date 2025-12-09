@@ -14,28 +14,15 @@ class ReturnService {
   // Sample data
   final String? baseUrl = dotenv.env['API_BASE_URL']; // replace with your API base URL
 
-  final List<ReturnModel> _sampleReturns = [
-    ReturnModel(year: 2019, description: "Wheat Sale", date: DateTime(2019, 3, 5), amount: 4000 ,quantity: 1),
-    ReturnModel(year: 2020, description: "Rice Sale", date: DateTime(2020, 6, 12), amount: 6500 , quantity: 2),
-    ReturnModel(year: 2021, description: "Vegetables Sale", date: DateTime(2021, 9, 18), amount: 5000 , quantity: 1),
-    ReturnModel(year: 2022, description: "Fruits Sale", date: DateTime(2022, 11, 23), amount: 7000 , quantity: 1),
-    ReturnModel(year: 2023, description: "Oilseeds Sale", date: DateTime(2023, 2, 10), amount: 9000 , quantity: 1),
-  ];
-
   // Returns a summary of total returns per year
   Future<List<YearlyInvestmentSummaryDTO>> getYearlySummary({required int years}) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString("auth_token");
     final userData = prefs.getString("user_data");
     if (token == null || userData == null) return [];
-
     final user = jsonDecode(userData);
     final farmerId = user['id'];
-
-    final uri = Uri.parse(
-        "$baseUrl/returns/farmer/$farmerId/returns/yearly?year=$years"
-    );
-
+    final uri = Uri.parse("$baseUrl/returns/farmer/$farmerId/returns/yearly?year=$years");
     final response = await http.get(
         uri,
         headers: {
@@ -76,7 +63,6 @@ class ReturnService {
       "cropId": cropId,
       "quantity":quantity,
     });
-    log("GKaaxx :: body :: $body");
     final response = await http.post(
       Uri.parse("$baseUrl/returns"),
       headers: {"Content-Type": "application/json",

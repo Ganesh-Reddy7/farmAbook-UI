@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/return_model.dart';
 import '../../services/return_service.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/barChart.dart';
+import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
+import '../../widgets/sectionTitle.dart';
 import 'add_entities/add_returns_screen.dart';
 import 'detail_screens/return_details_screen.dart';
 
@@ -27,7 +31,6 @@ class ReturnsScreen extends StatefulWidget {
     required this.cardGradientEnd,
     required this.cardBorder,
     this.onDataChanged,
-
     Key? key,
   }) : super(key: key);
 
@@ -35,12 +38,15 @@ class ReturnsScreen extends StatefulWidget {
   _ReturnsScreenState createState() => _ReturnsScreenState();
 }
 
-class _ReturnsScreenState extends State<ReturnsScreen> {
+class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   int _selectedYear = DateTime.now().year;
   bool _isLineChart = false;
-
   Map<int, List<ReturnsList>> returnsByYear = {};
   Map<int, double> yearlyReturns = {};
+  List<double> chartReturns = [];
+  List<String> chartYears = [];
 
   @override
   void initState() {
@@ -48,10 +54,11 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
     _fetchYearlySummary();
     _fetchReturnsForYear(_selectedYear);
   }
-
   Future<void> _fetchYearlySummary() async {
     final fetched = await ReturnService().getYearlySummary(years: 5);
     setState(() {
+      chartYears = fetched.map<String>((y) => y.year.toString()).toList();
+      chartReturns = fetched.map<double>((y) => y.totalAmount.toDouble()).toList();
       yearlyReturns = {for (var e in fetched) e.year: e.totalAmount};
     });
   }
@@ -70,23 +77,15 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
     }
   }
 
-  double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
-
-  double get maxY {
-    return yearlyReturns.isEmpty
-        ? 1000
-        : safeMaxY(yearlyReturns.values.reduce(max));
-  }
-
-  TextStyle get yLabelStyle => TextStyle(color: widget.primaryText, fontSize: 12);
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
+
     final currentYearReturns = returnsByYear[_selectedYear] ?? [];
-    final totalReturns = currentYearReturns.fold<double>(
-        0.0, (sum, ret) => sum + ret.totalReturns);
-    final lastFiveYears =
-    List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
+    final totalReturns = currentYearReturns.fold<double>(0.0, (sum, ret) => sum + ret.totalReturns);
+    final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
 
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
@@ -94,13 +93,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: Text(
-          "Returns",
-          style: TextStyle(
-              color: widget.primaryText,
-              fontWeight: FontWeight.bold,
-              fontSize: 20),
-        ),
+        title:SectionTitle(title: "Returns", isDark: isDark , fontSize:18),
         actions: [
           IconButton(
             icon: Icon(
@@ -118,44 +111,32 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Yearly Chart Container
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+              const SizedBox(height: 12),
+              if(_isLineChart)
+                  CommonLineChart(
+                  isDark: isDark,
+                  labels: chartYears,
+                  values: chartReturns,
+                  legend1: "Total Returns",
+                  lineColor1: Colors.green,
+                )
+              else
+                CommonBarChart(
+                  isDark: isDark,
+                  chartBg: colors.card,
+                  labels: chartYears,
+                  values: chartReturns,
+                  legend1: "Total Returns",
+                  barColor: Colors.green,
+                  barWidth: 16,
                 ),
-                child: SizedBox(
-                  height: 250,
-                  child: yearlyReturns.isEmpty
-                      ? Center(
-                    child: Text(
-                      "No chart data available",
-                      style: TextStyle(
-                          color: widget.secondaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                    ),
-                  )
-                      : _isLineChart
-                      ? _buildLineChart(yearlyReturns, lastFiveYears)
-                      : _buildBarChart(yearlyReturns, lastFiveYears),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Year Dropdown
+              const SizedBox(height: 12),
+              Divider(color: colors.divider),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Select Year:",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: widget.primaryText,
-                    ),
-                  ),
+                  SectionTitle(title: "Select Year:", isDark: isDark , fontSize:16),
                   GestureDetector(
                     onTap: () async {
                       final selectedYear = await CommonBottomSheetSelector.show<int>(
@@ -167,7 +148,6 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                         textColor: widget.primaryText,
                         selected: _selectedYear,
                       );
-
                       if (selectedYear != null) {
                         setState(() => _selectedYear = selectedYear);
                         _fetchReturnsForYear(selectedYear);
@@ -247,7 +227,8 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Pie Chart
+              SectionTitle(title: "Crop Pie Chart Data", isDark: isDark , fontSize:16),
+              const SizedBox(height: 20),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -260,20 +241,12 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                   height: 220,
                   child: currentYearReturns.isEmpty
                       ? Center(
-                    child: Text(
-                      "No pie chart data available",
-                      style: TextStyle(
-                          color: widget.secondaryText,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                    ),
+                    child:SectionTitle(title: "No pie chart data available", isDark: isDark , fontSize:16),
                   )
                       : PieChart(
                     PieChartData(
                       sections: currentYearReturns.map((ret) {
-                        final percentage = totalReturns > 0
-                            ? (ret.totalReturns / totalReturns) * 100
-                            : 0.0;
+                        final percentage = totalReturns > 0 ? (ret.totalReturns / totalReturns) * 100 : 0.0;
                         return PieChartSectionData(
                           value: ret.totalReturns,
                           color: Colors.primaries[
@@ -296,7 +269,8 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Returns List with navigation
+              SectionTitle(title: "Returns in $_selectedYear", isDark: isDark , fontSize:16),
+              const SizedBox(height: 20),
               currentYearReturns.isEmpty
                   ? Container(
                 width: double.infinity,
@@ -328,8 +302,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
                           color: widget.secondaryText),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      "Please add returns to view details.",
+                    Text("Please add returns to view details.",
                       style: TextStyle(color: widget.secondaryText),
                     ),
                   ],
@@ -429,6 +402,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
       floatingActionButton: FloatingActionButton(
         mini: true,
         backgroundColor: widget.accent,
+        heroTag: "add-returns",
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -447,143 +421,6 @@ class _ReturnsScreenState extends State<ReturnsScreen> {
           if (result == true) _refreshCurrentYearReturns();
         },
         child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
-
-  Widget _buildBarChart(Map<int, double> yearlyReturns, List<int> lastFiveYears) {
-    return BarChart(
-      BarChartData(
-        maxY: maxY,
-        minY: 0,
-        alignment: BarChartAlignment.spaceAround,
-        barTouchData: BarTouchData(enabled: true),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= lastFiveYears.length) {
-                  return const SizedBox();
-                }
-                return Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(
-                    lastFiveYears[index].toString(),
-                    style: yLabelStyle,
-                  ),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 50,
-              getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(left: 0),
-                child: Text(
-                  "₹${value.toInt()}",
-                  style: yLabelStyle,
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        borderData: FlBorderData(show: false),
-        barGroups: List.generate(lastFiveYears.length, (index) {
-          int year = lastFiveYears[index];
-          double value = yearlyReturns[year] ?? 0;
-          return BarChartGroupData(
-            x: index,
-            barRods: [
-              BarChartRodData(
-                toY: value,
-                color: widget.accent,
-                width: 18,
-                borderRadius: BorderRadius.circular(6),
-              )
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildLineChart(Map<int, double> yearlyReturns, List<int> lastFiveYears) {
-    final spots = List.generate(lastFiveYears.length, (index) {
-      int year = lastFiveYears[index];
-      double value = yearlyReturns[year] ?? 0;
-      return FlSpot(index.toDouble(), value);
-    });
-
-    return LineChart(
-      LineChartData(
-        maxY: maxY,
-        minY: 0,
-        lineTouchData: LineTouchData(enabled: true),
-        gridData: FlGridData(show: true, drawVerticalLine: false),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= lastFiveYears.length) {
-                  return const SizedBox();
-                }
-                return Text(
-                  lastFiveYears[index].toString(),
-                  style: yLabelStyle,
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 55,
-              getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(right: 0),
-                child: Text(
-                  "₹${value.toInt()}",
-                  style: yLabelStyle,
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            gradient: LinearGradient(
-              colors: [widget.accent.withOpacity(0.5), widget.accent],
-            ),
-            barWidth: 4,
-            dotData: FlDotData(show: true),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(
-                colors: [widget.accent.withOpacity(0.2), Colors.transparent],
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

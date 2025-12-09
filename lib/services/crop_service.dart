@@ -120,7 +120,6 @@ class CropService {
       final userData = prefs.getString("user_data");
       if (token == null || userData == null) return [];
       final farmerId = jsonDecode(userData)['id'];
-      log("GKaaxx :: $year , $farmerId");
       final url = Uri.parse("$baseUrl/crops/farmer/$farmerId/financial-year/$year");
 
       final response = await http.get(
@@ -132,9 +131,8 @@ class CropService {
       );
 
       if (response.statusCode == 200) {
-        log("GKaaxx :: $response");
         final List data = jsonDecode(response.body);
-        log("GKaaxx :: $data");
+        log("GKaaxx :: data :: $data");
         return data.map((e) => Crop.fromJson(e)).toList();
       } else {
         log("Get Crops by year failed: ${response.statusCode} ${response.body}");

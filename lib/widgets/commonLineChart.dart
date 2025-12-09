@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 class CommonLineChart extends StatefulWidget {
   final bool isDark;
 
-  final List<String> labels;      // X-axis labels
-  final List<double> values;      // Line 1
-  final List<double>? values2;    // Line 2 (optional)
+  final List<String> labels;
+  final List<double> values;
+  final List<double>? values2;
 
   final String? legend1;
   final String? legend2;
@@ -26,7 +26,7 @@ class CommonLineChart extends StatefulWidget {
     this.legend2,
     this.lineColor1 = Colors.blueAccent,
     this.lineColor2 = Colors.orangeAccent,
-    this.height = 260,
+    this.height = 220,
   }) : super(key: key);
 
   @override
@@ -50,7 +50,6 @@ class _CommonLineChartState extends State<CommonLineChart> {
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
 
-    // Combine values to detect global max Y
     final allValues = [
       ...widget.values,
       if (widget.values2 != null) ...widget.values2!,
@@ -89,9 +88,6 @@ class _CommonLineChartState extends State<CommonLineChart> {
     );
   }
 
-  // ---------------------------------------------
-  // BUILD CHART
-  // ---------------------------------------------
   LineChartData _chartData(double yMax, double interval) {
     final isDark = widget.isDark;
 
@@ -134,19 +130,22 @@ class _CommonLineChartState extends State<CommonLineChart> {
           sideTitles: SideTitles(
             showTitles: true,
             reservedSize: 36,
-            getTitlesWidget: (value, _) {
-              int index = value.toInt();
-              if (index < 0 || index >= widget.labels.length) {
-                return const SizedBox();
-              }
-              return Text(
-                widget.labels[index],
-                style: TextStyle(
-                  fontSize: 10,
-                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
-                ),
-              );
-            },
+              getTitlesWidget: (value, _) {
+                if (value % 1 != 0) {
+                  return const SizedBox();
+                }
+                int index = value.toInt();
+                if (index < 0 || index >= widget.labels.length) {
+                  return const SizedBox();
+                }
+                return Text(
+                  widget.labels[index],
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                  ),
+                );
+              },
           ),
         ),
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -177,9 +176,6 @@ class _CommonLineChartState extends State<CommonLineChart> {
     );
   }
 
-  // ---------------------------------------------
-  // BUILD LINES
-  // ---------------------------------------------
   List<LineChartBarData> _buildLines() {
     final lines = <LineChartBarData>[];
 
@@ -234,9 +230,7 @@ class _CommonLineChartState extends State<CommonLineChart> {
     return lines;
   }
 
-  // ---------------------------------------------
-  // LEGEND
-  // ---------------------------------------------
+
   Widget _buildLegend() {
     final isDark = widget.isDark;
 

@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../models/investment.dart';
 import '../../services/investment_service.dart';
+import '../../theme/app_colors.dart';
+import '../../widgets/barChart.dart';
+import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
+import '../../widgets/sectionTitle.dart';
 import 'add_entities/add_investment_screen.dart' hide Worker;
 import 'worker_list_screen.dart';
 
@@ -34,12 +38,16 @@ class InvestmentsScreen extends StatefulWidget {
   _InvestmentsScreenState createState() => _InvestmentsScreenState();
 }
 
-class _InvestmentsScreenState extends State<InvestmentsScreen> {
+class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   int _selectedYear = DateTime.now().year;
   bool _isLineChart = false;
-
   Map<int, List<Investment>> investmentsByYear = {};
   Map<int, double> yearlyInvestments = {};
+  List<double> chartInvestments = [];
+  List<String> chartYears = [];
+
 
   @override
   void initState() {
@@ -51,9 +59,11 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
   Future<void> _fetchYearlySummary() async {
     final fetched = await InvestmentService().getYearlySummaryForFarmer(
       startYear: DateTime.now().year - 4,
-      endYear: DateTime.now().year + 1,
+      endYear: DateTime.now().year,
     );
     setState(() {
+      chartYears = fetched.map<String>((y) => y.year.toString()).toList();
+      chartInvestments = fetched.map<double>((y) => y.totalAmount.toDouble()).toList();
       yearlyInvestments = {for (var e in fetched) e.year: e.totalAmount};
     });
   }
@@ -75,18 +85,11 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
     }
   }
 
-  double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
-
-  double get maxY {
-    return yearlyInvestments.isEmpty
-        ? 1000
-        : safeMaxY(yearlyInvestments.values.reduce(max));
-  }
-
-  TextStyle get yLabelStyle => TextStyle(color: widget.primaryText, fontSize: 12);
-
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     final currentYearInvestments = investmentsByYear[_selectedYear] ?? [];
     final totalInvestment = currentYearInvestments.fold<double>(
       0.0,
@@ -96,23 +99,14 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
       0.0,
           (sum, inv) => sum + (inv.remainingAmount ?? 0.0),
     );
-    final lastFiveYears =
-    List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
-
+    final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: Text(
-          "Investments",
-          style: TextStyle(
-            color: widget.primaryText,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
+        title: SectionTitle(title: "Investments", isDark: isDark , fontSize:16),
         actions: [
           IconButton(
             icon: Icon(
@@ -130,46 +124,32 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              // Yearly chart
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+              const SizedBox(height: 12),
+              if(_isLineChart)
+                  CommonLineChart(
+                  isDark: isDark,
+                  labels: chartYears,
+                  values: chartInvestments,
+                  legend1: "Total Investment",
+                  lineColor1: Colors.orange,
+                )
+              else
+                CommonBarChart(
+                  isDark: isDark,
+                  chartBg: colors.card,
+                  labels: chartYears,
+                  values: chartInvestments,
+                  legend1: "Total Investment",
+                  barColor: Colors.orange,
+                  barWidth: 16,
                 ),
-                child: SizedBox(
-                  height: 250,
-                  child: yearlyInvestments.isEmpty
-                      ? Center(
-                    child: Text(
-                      "No chart data available",
-                      style: TextStyle(
-                        color: widget.secondaryText,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                      : _isLineChart
-                      ? _buildLineChart(yearlyInvestments, lastFiveYears)
-                      : _buildBarChart(yearlyInvestments, lastFiveYears),
-                ),
-              ),
-              const SizedBox(height: 20),
-              // Year dropdown
+              const SizedBox(height: 12),
+              Divider(color: colors.divider),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "Select Year:",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: widget.primaryText,
-                    ),
-                  ),
-
+                  SectionTitle(title: "Select Year:", isDark: isDark , fontSize:16),
                   GestureDetector(
                     onTap: () async {
                       final selectedYear = await CommonBottomSheetSelector.show<int>(
@@ -177,11 +157,10 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
                         title: "Select Year",
                         items: lastFiveYears,
                         displayText: (year) => year.toString(),
-                        backgroundColor: Colors.black87,
+                        backgroundColor: colors.card,
                         textColor: widget.primaryText,
                         selected: _selectedYear,
                       );
-
                       if (selectedYear != null) {
                         setState(() => _selectedYear = selectedYear);
                         _fetchInvestmentsForYear(selectedYear, true);
@@ -208,6 +187,8 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
               const SizedBox(height: 20),
               _investmentPieChart(currentYearInvestments, totalInvestment),
               const SizedBox(height: 20),
+              SectionTitle(title: "Investments in $_selectedYear:", isDark: isDark , fontSize:16),
+              const SizedBox(height: 20),
               currentYearInvestments.isEmpty
                   ? _noInvestmentsCard()
                   : Column(
@@ -222,6 +203,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
       floatingActionButton: FloatingActionButton(
         mini: true,
         backgroundColor: widget.accent,
+        heroTag: "add-investment",
         onPressed: () async {
           final result = await Navigator.push(
             context,
@@ -497,114 +479,6 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildBarChart(Map<int, double> yearlyInvestments, List<int> lastFiveYears) {
-    return BarChart(
-      BarChartData(
-        maxY: maxY,
-        minY: 0,
-        alignment: BarChartAlignment.spaceAround,
-        barTouchData: BarTouchData(enabled: true),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= lastFiveYears.length) return const SizedBox();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Text(lastFiveYears[index].toString(), style: yLabelStyle),
-                );
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 50,
-              getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(left: 0),
-                child: Text("₹${value.toInt()}", style: yLabelStyle, textAlign: TextAlign.right),
-              ),
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        borderData: FlBorderData(show: false),
-        barGroups: List.generate(lastFiveYears.length, (index) {
-          int year = lastFiveYears[index];
-          double value = yearlyInvestments[year] ?? 0;
-          return BarChartGroupData(
-            x: index,
-            barRods: [BarChartRodData(toY: value, color: widget.accent, width: 18, borderRadius: BorderRadius.circular(6))],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildLineChart(Map<int, double> yearlyInvestments, List<int> lastFiveYears) {
-    final spots = List.generate(lastFiveYears.length, (index) {
-      int year = lastFiveYears[index];
-      double value = yearlyInvestments[year] ?? 0;
-      return FlSpot(index.toDouble(), value);
-    });
-
-    return LineChart(
-      LineChartData(
-        maxY: maxY,
-        minY: 0,
-        lineTouchData: LineTouchData(enabled: true),
-        gridData: FlGridData(show: true, drawVerticalLine: false),
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              reservedSize: 32,
-              interval: 1,
-              getTitlesWidget: (value, meta) {
-                int index = value.toInt();
-                if (index < 0 || index >= lastFiveYears.length) return const SizedBox();
-                return Text(lastFiveYears[index].toString(), style: yLabelStyle);
-              },
-            ),
-          ),
-          leftTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: maxY / 5,
-              reservedSize: 55,
-              getTitlesWidget: (value, meta) => Padding(
-                padding: const EdgeInsets.only(right: 0),
-                child: Text("₹${value.toInt()}", style: yLabelStyle, textAlign: TextAlign.right),
-              ),
-            ),
-          ),
-          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        ),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: spots,
-            isCurved: true,
-            gradient: LinearGradient(colors: [widget.accent.withOpacity(0.5), widget.accent]),
-            barWidth: 4,
-            dotData: FlDotData(show: true),
-            belowBarData: BarAreaData(
-              show: true,
-              gradient: LinearGradient(colors: [widget.accent.withOpacity(0.2), Colors.transparent]),
-            ),
-          ),
-        ],
       ),
     );
   }
