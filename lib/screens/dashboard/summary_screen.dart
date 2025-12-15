@@ -6,6 +6,7 @@ import '../../models/SummaryData.dart';
 import '../../models/CropData.dart';
 import '../../services/reports_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/CommonRoiDonutChart.dart';
 import '../../widgets/barChart.dart';
 import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
@@ -35,9 +36,11 @@ class SummaryScreen extends StatefulWidget {
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
-class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveClientMixin{
+class _SummaryScreenState extends State<SummaryScreen>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
+
   List<SummaryData> summaryList = [];
   int _selectedYear = 0;
   bool _showBarChart = true;
@@ -55,6 +58,9 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
   List<double> chartReturns = [];
   List<String> chartYears = [];
 
+  /// Memoized summary for selected year to avoid doing firstWhere in build
+  SummaryData? _selectedSummary;
+
   @override
   void initState() {
     super.initState();
@@ -69,71 +75,102 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
       if (fetchedSummary != null && fetchedSummary.isNotEmpty) {
         summaryList = fetchedSummary;
         _selectedYear = fetchedSummary.last.year;
+
         yearlyInvestments.clear();
         yearlyReturns.clear();
-        chartYears = summaryList.map<String>((y) => y.year.toString()).toList();
-        chartInvestments = summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
-        chartReturns = summaryList.map<double>((y) => y.totalReturns.toDouble()).toList();
+
+        chartYears =
+            summaryList.map<String>((y) => y.year.toString()).toList();
+        chartInvestments =
+            summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
+        chartReturns =
+            summaryList.map<double>((y) => y.totalReturns.toDouble()).toList();
+
         for (var e in summaryList) {
           yearlyInvestments[e.year] = e.totalInvestment;
           yearlyReturns[e.year] = e.totalReturns;
         }
+
+        _selectedSummary =
+            summaryList.firstWhere((e) => e.year == _selectedYear);
+
         // Fetch all-time crops
-        final allTimeCrops = await ReportsService().getCropsDistributionData(year: 0);
+        final allTimeCrops =
+        await ReportsService().getCropsDistributionData(year: 0);
         allTimeTopCrops = allTimeCrops['topCrops'] ?? [];
         allTimeLowCrops = allTimeCrops['lowCrops'] ?? [];
 
         // Fetch selected year crops
-        final yearCrops = await ReportsService().getCropsDistributionData(year: _selectedYear);
+        final yearCrops = await ReportsService()
+            .getCropsDistributionData(year: _selectedYear);
         selectedYearTopCrops = yearCrops['topCrops'] ?? [];
         selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
-      }
-      else {
+      } else {
         summaryList = [];
+        _selectedSummary = null;
       }
     } catch (e) {
       print("Error fetching summary/crops: $e");
       summaryList = [];
+      _selectedSummary = null;
     }
 
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
-  double safeMaxY(double value) => value > 0 ? value * 1.2 : 1000;
-  double get maxY {
-    if (yearlyInvestments.isEmpty && yearlyReturns.isEmpty) return 1000;
-    final maxInv = yearlyInvestments.values.isEmpty ? 0 : yearlyInvestments.values.reduce((a, b) => a > b ? a : b);
-    final maxRet = yearlyReturns.values.isEmpty ? 0 : yearlyReturns.values.reduce((a, b) => a > b ? a : b);
-    return safeMaxY((max(maxInv, maxRet)) as double);
-  }
-
-  double getReservedYTitleSize(double maxY, TextStyle style) {
-    final text = "₹${maxY.toInt()}";
-    final tp = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    return tp.width + 8;
+  BoxDecoration _cardDecoration() {
+    return BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          widget.cardGradientStart.withOpacity(0.1),
+          widget.cardGradientEnd.withOpacity(0.05),
+        ],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 10,
+          offset: const Offset(0, 5),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     final theme = Theme.of(context);
     final isDark = theme.brightness != Brightness.dark;
     final colors = AppColors.fromTheme(isDark);
+
     return Scaffold(
       backgroundColor: widget.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: widget.primaryText),
-        title: SectionTitle(title: "Summary (Investment & Returns)", isDark: isDark , fontSize:16),
+        title: SectionTitle(
+          title: "Summary (Investment & Returns)",
+          isDark: isDark,
+          fontSize: 16,
+        ),
         actions: [
           IconButton(
             icon: Icon(
               _showBarChart ? Icons.show_chart : Icons.bar_chart,
               color: widget.accent,
             ),
-            onPressed: () => setState(() => _showBarChart = !_showBarChart),
+            onPressed: () {
+              setState(() {
+                _showBarChart = !_showBarChart;
+              });
+            },
           ),
         ],
       ),
@@ -151,11 +188,14 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
             ? ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           children: [
-            SizedBox(height: 150),
+            const SizedBox(height: 150),
             Center(
               child: Text(
                 "No summary data available",
-                style: TextStyle(color: widget.secondaryText, fontSize: 16),
+                style: TextStyle(
+                  color: widget.secondaryText,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
@@ -167,71 +207,22 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 12),
-              if(_showBarChart)
-                CommonBarChart(
-                  isDark: isDark,
-                  chartBg: colors.card,
-                  labels: chartYears,
-                  values: chartInvestments,
-                  values2: chartReturns,
-                  legend1: "Total Investment",
-                  legend2: "Total Returns",
-                  barColor2: Colors.green,
-                  barColor: Colors.orange,
-                  barWidth: 16,
-                )
-              else
-                CommonLineChart(
-                  isDark: isDark,
-                  labels: chartYears,
-                  values: chartInvestments,
-                  values2: chartReturns,
-                  legend1: "Total Investment",
-                  legend2: "Total Returns",
-                  lineColor1: widget.accent,
-                  lineColor2: Colors.orangeAccent,
-                ),
+
+              /// Chart Section with repaint isolation
+              RepaintBoundary(
+                child: _buildChartSection(isDark, colors),
+              ),
+
               const SizedBox(height: 12),
               Divider(color: colors.divider),
               const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SectionTitle(title: "Select Year :", isDark: isDark , fontSize:16),
-                  GestureDetector(
-                    onTap: () async {
-                      final selectedYear = await CommonBottomSheetSelector.show<int>(
-                        context: context,
-                        title: "Select Year",
-                        items: summaryList.map((e) => e.year).toList(),
-                        displayText: (year) => year.toString(),
-                        backgroundColor: colors.card,
-                        textColor: widget.primaryText,
-                        selected: _selectedYear,
-                      );
-                      if (selectedYear != null) {
-                        setState(() => _selectedYear = selectedYear);
-                        final yearCrops = await ReportsService().getCropsDistributionData(year: _selectedYear);
-                        setState(() {
-                          selectedYearTopCrops = yearCrops['topCrops'] ?? [];
-                          selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
-                        });
-                      }
-                    },
-                    child: Row(
-                      children: [
-                        Text(
-                          _selectedYear.toString(),
-                          style: TextStyle(color: widget.primaryText, fontSize: 16),
-                        ),
-                        Icon(Icons.arrow_drop_down , color: widget.primaryText),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+
+              /// Year selector
+              _buildYearSelector(isDark, colors),
+
               const SizedBox(height: 16),
-              // Pie Chart inside container
+
+              /// Pie chart section
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -241,37 +232,174 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
                 ),
                 child: SizedBox(
                   height: 220,
-                  child: _buildInvestmentReturnPieChart(),
+                  child: RepaintBoundary(
+                    child: LogRoiDonut(
+                      investment: _selectedSummary!.totalInvestment.toDouble(),
+                      returns: _selectedSummary!.totalReturns.toDouble(),
+                      isDark: isDark,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
-              _buildSummaryCard(
-                _selectedYear,
-                summaryList.firstWhere((e) => e.year == _selectedYear),
+              /// Summary card (investment & returns)
+              if (_selectedSummary != null)
+                _buildSummaryCard(_selectedYear, _selectedSummary!),
+
+              const SizedBox(height: 24),
+
+              /// All-time crops
+              SectionTitle(
+                title: "All-Time Top Performing Crops",
+                isDark: isDark,
+                fontSize: 16,
               ),
-              const SizedBox(height: 24),
-              // All-Time Crops
-              SectionTitle(title: "All-Time Top Performing Crops", isDark: isDark , fontSize:16),
               const SizedBox(height: 8),
-              _buildCropCards(allTimeTopCrops),
+              RepaintBoundary(
+                child: _buildCropCards(allTimeTopCrops),
+              ),
               const SizedBox(height: 16),
-              SectionTitle(title: "All-Time Low Performing Crops", isDark: isDark , fontSize:16),
+              SectionTitle(
+                title: "All-Time Low Performing Crops",
+                isDark: isDark,
+                fontSize: 16,
+              ),
               const SizedBox(height: 8),
-              _buildCropCards(allTimeLowCrops),
+              RepaintBoundary(
+                child: _buildCropCards(allTimeLowCrops),
+              ),
+
               const SizedBox(height: 24),
-              // Selected Year Crops
-              SectionTitle(title: "Top Performing Crops in $_selectedYear", isDark: isDark , fontSize:16),
+
+              /// Selected year crops
+              SectionTitle(
+                title: "Top Performing Crops in $_selectedYear",
+                isDark: isDark,
+                fontSize: 16,
+              ),
               const SizedBox(height: 8),
-              _buildCropCards(selectedYearTopCrops),
+              RepaintBoundary(
+                child: _buildCropCards(selectedYearTopCrops),
+              ),
               const SizedBox(height: 16),
-              SectionTitle(title: "Low Performing Crops in $_selectedYear", isDark: isDark , fontSize:16),
+              SectionTitle(
+                title: "Low Performing Crops in $_selectedYear",
+                isDark: isDark,
+                fontSize: 16,
+              ),
               const SizedBox(height: 8),
-              _buildCropCards(selectedYearLowCrops),
+              RepaintBoundary(
+                child: _buildCropCards(selectedYearLowCrops),
+              ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  /// Chart section (bar / line toggle)
+  Widget _buildChartSection(bool isDark, AppColors colors) {
+    if (chartYears.isEmpty) {
+      return Center(
+        child: Text(
+          "No chart data available",
+          style: TextStyle(color: widget.secondaryText),
+        ),
+      );
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      switchInCurve: Curves.easeIn,
+      switchOutCurve: Curves.easeOut,
+      child: _showBarChart
+          ? CommonBarChart(
+        key: const ValueKey('bar_chart'),
+        isDark: isDark,
+        chartBg: colors.card,
+        labels: chartYears,
+        values: chartInvestments,
+        values2: chartReturns,
+        legend1: "Total Investment",
+        legend2: "Total Returns",
+        barColor2: Colors.green,
+        barColor: Colors.orange,
+        barWidth: 16,
+        isLoading: _isLoading,
+      )
+          : CommonLineChart(
+        key: const ValueKey('line_chart'),
+        isDark: isDark,
+        labels: chartYears,
+        values: chartInvestments,
+        values2: chartReturns,
+        legend1: "Total Investment",
+        legend2: "Total Returns",
+        lineColor1: Colors.orange,
+        lineColor2: Colors.green,
+      ),
+    );
+  }
+
+  /// Year selector row
+  Widget _buildYearSelector(bool isDark, AppColors colors) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        SectionTitle(
+          title: "Select Year :",
+          isDark: isDark,
+          fontSize: 16,
+        ),
+        GestureDetector(
+          onTap: () async {
+            final selectedYear = await CommonBottomSheetSelector.show<int>(
+              context: context,
+              title: "Select Year",
+              items: summaryList.map((e) => e.year).toList(),
+              displayText: (year) => year.toString(),
+              backgroundColor: colors.card,
+              textColor: widget.primaryText,
+              selected: _selectedYear,
+            );
+            if (selectedYear != null && selectedYear != _selectedYear) {
+              _onYearChanged(selectedYear);
+            }
+          },
+          child: Row(
+            children: [
+              Text(
+                _selectedYear.toString(),
+                style: TextStyle(
+                  color: widget.primaryText,
+                  fontSize: 16,
+                ),
+              ),
+              Icon(Icons.arrow_drop_down, color: widget.primaryText),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _onYearChanged(int year) async {
+    setState(() {
+      _selectedYear = year;
+      _selectedSummary =
+          summaryList.firstWhere((e) => e.year == _selectedYear);
+    });
+
+    final yearCrops =
+    await ReportsService().getCropsDistributionData(year: _selectedYear);
+
+    if (!mounted) return;
+
+    setState(() {
+      selectedYearTopCrops = yearCrops['topCrops'] ?? [];
+      selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
+    });
   }
 
   Widget _buildCropCards(List<CropData> crops) {
@@ -280,24 +408,7 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         margin: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              widget.cardGradientStart.withOpacity(0.1),
-              widget.cardGradientEnd.withOpacity(0.05),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 5)),
-          ],
-        ),
+        decoration: _cardDecoration(),
         child: Column(
           children: [
             Icon(Icons.info_outline, size: 40, color: widget.accent),
@@ -305,9 +416,10 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
             Text(
               "No crops data available",
               style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: widget.secondaryText),
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: widget.secondaryText,
+              ),
             ),
             const SizedBox(height: 6),
             Text(
@@ -320,136 +432,135 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
     }
 
     return Column(
-      children: crops.map((crop) {
+      children: List.generate(crops.length, (index) {
+        final crop = crops[index];
+
         return Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                widget.cardGradientStart.withOpacity(0.1),
-                widget.cardGradientEnd.withOpacity(0.05),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5)),
-            ],
+            color: widget.cardGradientStart.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: widget.cardBorder.withOpacity(0.2)),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                color: widget.scaffoldBg.withOpacity(0.5),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            crop.cropName,
-                            style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: widget.primaryText),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(Icons.account_balance_wallet_outlined,
-                                  size: 16, color: widget.primaryText),
-                              const SizedBox(width: 4),
-                              Text(
-                                "₹${crop.totalInvestment.toStringAsFixed(0)}",
-                                style: TextStyle(color: widget.primaryText),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Icon(Icons.attach_money,
-                                  size: 16, color: Colors.green),
-                              const SizedBox(width: 4),
-                              Text(
-                                "₹${crop.totalReturns.toStringAsFixed(0)}",
-                                style: TextStyle(color: widget.primaryText),
-                              ),
-                            ],
-                          ),
-                        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              /// Crop Name + Profit Badge
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    crop.cropName,
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: widget.primaryText,
+                    ),
+                  ),
+                  Container(
+                    padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (crop.profit >= 0
+                          ? Colors.green
+                          : Colors.red)
+                          .withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      "₹${crop.profit.toStringAsFixed(0)}",
+                      style: TextStyle(
+                        color: crop.profit >= 0
+                            ? Colors.green[800]
+                            : Colors.red[800],
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
-                    // -------------------- Right Stats --------------------
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: widget.accent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            "Profit: ₹${crop.profit.toStringAsFixed(0)}",
-                            style: TextStyle(
-                                fontWeight: FontWeight.bold, color: widget.accent),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            "Yield: ${crop.yieldValue.toStringAsFixed(2)}",
-                            style: TextStyle(color: Colors.green[800]),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
+
+              const SizedBox(height: 10),
+
+              /// Investment & Returns row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _statRow(Icons.account_balance_wallet_outlined,
+                      "Investment", crop.totalInvestment),
+                  _statRow(Icons.attach_money, "Returns", crop.totalReturns),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              /// Yield row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  Icon(Icons.trending_up,
+                      size: 18, color: Colors.green[700]),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Yield: ${crop.yieldValue.toStringAsFixed(2)}",
+                    style: TextStyle(
+                      color: widget.primaryText,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
-      }).toList(),
+      }),
     );
   }
 
-  double getLeftReservedSize(double maxValue, TextStyle style) {
-    final text = "₹${maxValue.toInt()}"; // largest Y label
-    final tp = TextPainter(
-      text: TextSpan(text: text, style: style),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    return tp.width + 8; // some padding
+  Widget _statRow(IconData icon, String label, num value) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: widget.primaryText),
+        const SizedBox(width: 4),
+        Text(
+          "$label: ",
+          style: TextStyle(
+            fontSize: 14,
+            color: widget.secondaryText,
+          ),
+        ),
+        Text(
+          "₹${value.toStringAsFixed(0)}",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: widget.primaryText,
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildInvestmentReturnPieChart() {
-    if (summaryList.isEmpty) {
-      return Center(child: Text("No pie chart data", style: TextStyle(color: widget.secondaryText)));
+    if (summaryList.isEmpty || _selectedSummary == null) {
+      return Center(
+        child: Text(
+          "No pie chart data",
+          style: TextStyle(color: widget.secondaryText),
+        ),
+      );
     }
 
-    final selectedData = summaryList.firstWhere((e) => e.year == _selectedYear);
+    final selectedData = _selectedSummary!;
 
-    if (selectedData.totalInvestment == 0 && selectedData.totalReturns == 0) {
-      return Center(child: Text("No pie chart data", style: TextStyle(color: widget.secondaryText)));
+    if (selectedData.totalInvestment == 0 &&
+        selectedData.totalReturns == 0) {
+      return Center(
+        child: Text(
+          "No pie chart data",
+          style: TextStyle(color: widget.secondaryText),
+        ),
+      );
     }
 
     return PieChart(
@@ -459,13 +570,17 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
           PieChartSectionData(
             value: selectedData.totalInvestment,
             color: widget.accent,
-            title: selectedData.totalInvestment > 0 ? "₹${selectedData.totalInvestment.toInt()}" : "",
+            title: selectedData.totalInvestment > 0
+                ? "₹${selectedData.totalInvestment.toInt()}"
+                : "",
             radius: 60,
           ),
           PieChartSectionData(
             value: selectedData.totalReturns,
             color: Colors.orangeAccent,
-            title: selectedData.totalReturns > 0 ? "₹${selectedData.totalReturns.toInt()}" : "",
+            title: selectedData.totalReturns > 0
+                ? "₹${selectedData.totalReturns.toInt()}"
+                : "",
             radius: 60,
           ),
         ],
@@ -478,59 +593,47 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            widget.cardGradientStart.withOpacity(0.1),
-            widget.cardGradientEnd.withOpacity(0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 5)),
-        ],
-      ),
+      decoration: _cardDecoration(),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // -------------------- Investment --------------------
+          // Investment
           Column(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: widget.accent.withOpacity(0.2),
+                  color: Colors.orange.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.account_balance_wallet_outlined,
-                    color: widget.accent, size: 28),
+                child: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: Colors.orange,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 "Investment",
                 style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: widget.primaryText),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: widget.primaryText,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 "₹${summary.totalInvestment.toStringAsFixed(0)}",
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: widget.primaryText,
+                ),
               ),
             ],
           ),
 
-          // -------------------- Returns --------------------
+          // Returns
           Column(
             children: [
               Container(
@@ -539,23 +642,29 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
                   color: Colors.green.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.attach_money, color: Colors.green, size: 28),
+                child: const Icon(
+                  Icons.currency_rupee_outlined,
+                  color: Colors.green,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 "Returns",
                 style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: widget.primaryText),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: widget.primaryText,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
                 "₹${summary.totalReturns.toStringAsFixed(0)}",
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: widget.primaryText),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: widget.primaryText,
+                ),
               ),
             ],
           ),

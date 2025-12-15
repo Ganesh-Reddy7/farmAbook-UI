@@ -89,7 +89,7 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
                 itemBuilder: (context, index) {
                   final item = cardData[index];
                   return SizedBox(
-                    width: 190, // ⬆️ increased width for better layout
+                    width: 190,
                     child: FrostedCardResponsive(
                       title: item['title'] as String,
                       value: item['value'] as String,

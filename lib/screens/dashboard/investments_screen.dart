@@ -191,10 +191,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
               const SizedBox(height: 20),
               currentYearInvestments.isEmpty
                   ? _noInvestmentsCard()
-                  : Column(
-                children: currentYearInvestments
-                    .map((inv) => _investmentCard(inv))
-                    .toList(),
+                  : Column(children: currentYearInvestments.map((inv) => _investmentCard(inv)).toList(),
               ),
             ],
           ),
@@ -370,9 +367,23 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
   }
 
   Widget _investmentCard(Investment inv) {
+    final bool hasWorkers = inv.workers != null && inv.workers!.isNotEmpty;
+
+    final double screenW = MediaQuery.of(context).size.width;
+
+    // Dynamic responsive sizes
+    final double iconBox = screenW < 360 ? 34 : 40;
+    final double titleSize = screenW < 360 ? 14 : 15;
+    final double dateSize = screenW < 360 ? 12 : 13;
+    final double statusSize = screenW < 360 ? 12.5 : 13.5;
+    final double amountSize = screenW < 360 ? 16 : 17;
+
+    final Color paidColor = Colors.green.shade600;
+    final Color remainingColor = Colors.orange.shade700;
+
     return GestureDetector(
       onTap: () {
-        if (inv.workers != null && inv.workers!.isNotEmpty) {
+        if (hasWorkers) {
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -390,93 +401,130 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           );
         }
       },
-      child: SizedBox(
-        width: double.infinity,
+
+      child: RepaintBoundary(
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(16),
+          margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                widget.cardGradientStart.withOpacity(0.1),
-                widget.cardGradientEnd.withOpacity(0.05),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+            color: widget.cardGradientStart.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: widget.cardBorder.withOpacity(0.25)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(2, 3),
+              )
+            ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                color: widget.scaffoldBg.withOpacity(0.5),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // LEFT ICON
+              Container(
+                width: iconBox,
+                height: iconBox,
+                decoration: BoxDecoration(
+                  color: widget.accent.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.work_outline,
+                  color: widget.accent,
+                  size: iconBox * 0.55, // Responsive icon size
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              // MIDDLE
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Left: investment details
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          inv.description,
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: widget.primaryText),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Date: ${inv.date.year}-${inv.date.month.toString().padLeft(2, '0')}-${inv.date.day.toString().padLeft(2, '0')}",
-                          style: TextStyle(color: widget.secondaryText),
-                        ),
-                        if (inv.remainingAmount != null) ...[
-                          const SizedBox(height: 4),
-                          if (inv.remainingAmount! > 0)
-                            Text(
-                              "Remaining: ₹${inv.remainingAmount!.toStringAsFixed(0)}",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.orange.shade700,
-                              ),
-                            )
-                          else
-                            Text(
-                              "Fully Paid ✅",
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green.shade600,
-                              ),
-                            ),
-                        ],
-                      ],
+                    // TITLE
+                    Text(
+                      inv.description,
+                      style: TextStyle(
+                        color: widget.primaryText,
+                        fontSize: titleSize,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    // Right: amount and workers
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          "₹${inv.amount.toStringAsFixed(0)}",
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: widget.accent),
+
+                    const SizedBox(height: 4),
+
+                    // DATE
+                    Text(
+                      "Date: ${inv.date.year}-${inv.date.month.toString().padLeft(2, '0')}-${inv.date.day.toString().padLeft(2, '0')}",
+                      style: TextStyle(
+                        color: widget.secondaryText,
+                        fontSize: dateSize,
+                      ),
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    // STATUS
+                    if (inv.remainingAmount != null)
+                      Text(
+                        inv.remainingAmount! > 0
+                            ? "Remaining: ₹${inv.remainingAmount!.toStringAsFixed(0)}"
+                            : "Fully Paid",
+                        style: TextStyle(
+                          fontSize: statusSize,
+                          fontWeight: FontWeight.w600,
+                          color: inv.remainingAmount! > 0
+                              ? remainingColor
+                              : paidColor,
                         ),
-                        if (inv.workers != null && inv.workers!.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Icon(Icons.people, color: widget.accent),
-                        ]
-                      ],
-                    )
+                      ),
                   ],
                 ),
               ),
-            ),
+
+              const SizedBox(width: 10),
+
+              // RIGHT SIDE
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  // AMOUNT
+                  Text(
+                    "₹${inv.amount.toStringAsFixed(0)}",
+                    style: TextStyle(
+                      fontSize: amountSize,
+                      fontWeight: FontWeight.bold,
+                      color: widget.accent,
+                    ),
+                  ),
+
+                  if (hasWorkers) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.people,
+                          size: 18,
+                          color: widget.accent,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${inv.workers!.length}",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: widget.accent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      ],
+                    )
+                  ]
+                ],
+              )
+            ],
           ),
         ),
       ),

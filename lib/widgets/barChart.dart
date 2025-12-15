@@ -1,13 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
 
 class CommonBarChart extends StatefulWidget {
   final bool isDark;
   final Color chartBg;
   final List<String> labels;
 
-  final List<double> values; // dataset 1
-  final List<double>? values2; // dataset 2 (optional)
+  final List<double> values;
+  final List<double>? values2;
 
   final Color barColor;
   final Color barColor2;
@@ -17,6 +18,8 @@ class CommonBarChart extends StatefulWidget {
 
   final String? legend1;
   final String? legend2;
+
+  final bool isLoading; // 👈 NEW FLAG
 
   const CommonBarChart({
     Key? key,
@@ -31,17 +34,18 @@ class CommonBarChart extends StatefulWidget {
     this.barColor2 = Colors.orangeAccent,
     this.barWidth = 20,
     this.height = 270,
+    this.isLoading = false, // 👈 DEFAULT FALSE
   }) : super(key: key);
 
   @override
   State<CommonBarChart> createState() => _CommonBarChartState();
 }
 
-class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProviderStateMixin{
+class _CommonBarChartState extends State<CommonBarChart>
+    with SingleTickerProviderStateMixin {
   bool show1 = true;
   bool show2 = true;
 
-  // Clean Y axis steps
   double _roundMaxY(double value) {
     if (value <= 10) return 10;
     if (value <= 50) return 50;
@@ -55,55 +59,141 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
   Widget build(BuildContext context) {
     final isDark = widget.isDark;
 
-    // Combine values safely
+    if (widget.isLoading) {
+      return SizedBox(
+        width: double.infinity,
+        height: widget.height,
+        child: Shimmer.fromColors(
+          baseColor: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+          highlightColor: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.grey.shade400,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+        ),
+      );
+    }
+
+    bool noDataAvailable =
+        widget.labels.isEmpty ||
+            widget.values.isEmpty ||
+            (widget.values.every((v) => v == 0) &&
+                (widget.values2 == null ||
+                    widget.values2!.every((v) => v == 0)));
+
+    if (noDataAvailable) {
+      return SizedBox(
+        width: double.infinity,
+        height: widget.height,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : Colors.black.withOpacity(0.06),
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.bar_chart_rounded,
+                size: 60,
+                color: isDark
+                    ? Colors.white.withOpacity(0.15)
+                    : Colors.black.withOpacity(0.15),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                "No data to display",
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: isDark
+                      ? Colors.white.withOpacity(0.65)
+                      : Colors.black.withOpacity(0.65),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "Data will appear once available.",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark
+                      ? Colors.white.withOpacity(0.40)
+                      : Colors.black.withOpacity(0.45),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // --------------------------------------
+    // 3️⃣ NORMAL CHART MODE
+    // --------------------------------------
     final allValues = [
       ...widget.values,
       if (widget.values2 != null) ...widget.values2!,
     ];
 
-    // SAFE: prevent reduce() crash
     final double maxValue =
     allValues.isEmpty ? 0 : allValues.reduce((a, b) => a > b ? a : b);
 
     final double yMax = _roundMaxY(maxValue);
     final double interval = yMax == 0 ? 1 : yMax / 5;
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withOpacity(0.08)
-              : Colors.black.withOpacity(0.06),
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withOpacity(0.08)
+                : Colors.black.withOpacity(0.06),
+          ),
         ),
-      ),
+        child: Column(
+          children: [
+            _buildLegendInside(),
+            const SizedBox(height: 8),
 
-      child: Column(
-        children: [
-          _buildLegendInside(),
-          const SizedBox(height: 8),
-
-          SizedBox(
-            height: widget.height - 40,
-            child: BarChart(
-              BarChartData(
-                minY: 0,
-                maxY: yMax,
-                gridData: const FlGridData(show: false),
-                borderData: FlBorderData(show: false),
-                alignment: BarChartAlignment.spaceAround,
-                titlesData: _buildTitles(interval),
-                barGroups: _buildBarGroups(),
+            SizedBox(
+              width: double.infinity,
+              height: widget.height - 40,
+              child: BarChart(
+                BarChartData(
+                  minY: 0,
+                  maxY: yMax,
+                  gridData: const FlGridData(show: false),
+                  borderData: FlBorderData(show: false),
+                  alignment: BarChartAlignment.spaceAround,
+                  titlesData: _buildTitles(interval),
+                  barGroups: _buildBarGroups(),
+                ),
+                swapAnimationDuration: const Duration(milliseconds: 30),
+                swapAnimationCurve: Curves.easeOut,
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  // --------------------------------------
+  // TITLES
+  // --------------------------------------
   FlTitlesData _buildTitles(double interval) {
     final isDark = widget.isDark;
 
@@ -117,12 +207,12 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
             value.toInt().toString(),
             style: TextStyle(
               fontSize: 10,
-              color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+              color:
+              isDark ? Colors.grey.shade400 : Colors.grey.shade700,
             ),
           ),
         ),
       ),
-
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           reservedSize: 36,
@@ -138,22 +228,25 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
                 widget.labels[i],
                 style: TextStyle(
                   fontSize: 10,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade700,
+                  color: isDark
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade700,
                 ),
               ),
             );
           },
         ),
       ),
-
-      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      rightTitles:
+      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      topTitles:
+      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
     );
   }
 
-  // -----------------------------------
-  // SAFE BAR GROUPS (No Index Crash)
-  // -----------------------------------
+  // --------------------------------------
+  // BARS
+  // --------------------------------------
   List<BarChartGroupData> _buildBarGroups() {
     final v1 = widget.values;
     final v2 = widget.values2;
@@ -164,25 +257,21 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
       final rods = <BarChartRodData>[];
 
       if (show1 && i < v1.length) {
-        rods.add(
-          BarChartRodData(
-            toY: v1[i],
-            width: widget.barWidth,
-            color: widget.barColor,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
+        rods.add(BarChartRodData(
+          toY: v1[i],
+          width: widget.barWidth,
+          color: widget.barColor,
+          borderRadius: BorderRadius.circular(4),
+        ));
       }
 
       if (show2 && v2 != null && i < v2.length) {
-        rods.add(
-          BarChartRodData(
-            toY: v2[i],
-            width: widget.barWidth,
-            color: widget.barColor2,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        );
+        rods.add(BarChartRodData(
+          toY: v2[i],
+          width: widget.barWidth,
+          color: widget.barColor2,
+          borderRadius: BorderRadius.circular(4),
+        ));
       }
 
       groups.add(
@@ -197,9 +286,9 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
     return groups;
   }
 
-  // -----------------------------------
-  // LEGEND INSIDE
-  // -----------------------------------
+  // --------------------------------------
+  // LEGEND
+  // --------------------------------------
   Widget _buildLegendInside() {
     if (widget.legend1 == null && widget.legend2 == null) {
       return const SizedBox();
@@ -215,7 +304,8 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
             onTap: () => setState(() => show1 = !show1),
             child: Row(
               children: [
-                _legendDot(widget.barColor.withOpacity(show1 ? 1 : 0.25)),
+                _legendDot(
+                    widget.barColor.withOpacity(show1 ? 1 : 0.25)),
                 const SizedBox(width: 6),
                 Text(
                   widget.legend1!,
@@ -236,14 +326,15 @@ class _CommonBarChartState extends State<CommonBarChart> with SingleTickerProvid
             onTap: () => setState(() => show2 = !show2),
             child: Row(
               children: [
-                _legendDot(widget.barColor2.withOpacity(show2 ? 1 : 0.25)),
+                _legendDot(widget.barColor2
+                    .withOpacity(show2 ? 1 : 0.25)),
                 const SizedBox(width: 6),
                 Text(
                   widget.legend2!,
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark
-                        ? (show2 ? Colors.white70 : Colors.white24)
+                        ? (show2 ? Colors.white70 : Colors.white)
                         : (show2 ? Colors.black87 : Colors.black26),
                   ),
                 ),

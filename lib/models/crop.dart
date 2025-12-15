@@ -27,7 +27,7 @@ class Crop {
           ? DateTime.parse(json['date'])
           : null,
       area: (json['area'] as num).toDouble(),
-      value: json['area'] != null ? (json['area'] as num).toDouble() : null,
+      value: json['totalProduction'] != null ? (json['totalProduction'] as num).toDouble() : null,
       farmerId: json['farmerId'] as int?,
       totalInvested:json['totalInvestment'],
       totalReturns:json['totalReturns'],

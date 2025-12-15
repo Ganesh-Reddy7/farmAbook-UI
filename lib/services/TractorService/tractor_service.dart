@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/Tractor.dart';
 import '../../models/expense.dart';
+import '../../utils/cache_manager.dart';
 
 class TractorService {
   final String? baseUrl = dotenv.env['API_BASE_URL'];
@@ -169,7 +170,7 @@ class TractorService {
         },
         body: jsonEncode(body),
       );
-
+      AppCacheManager.clearTractorCache(auth["farmerId"] as int);
       log("Expense API Response: ${response.statusCode} → ${response.body}");
       return response;
     } catch (e) {

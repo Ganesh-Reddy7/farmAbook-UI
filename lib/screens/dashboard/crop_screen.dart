@@ -45,6 +45,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
   List<double> chartInvestments = [];
   List<double> chartReturns = [];
   List<String> cropList = [];
+  bool isChartLoading = false;
 
   @override
   void initState() {
@@ -53,14 +54,20 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
   }
 
   Future<void> _fetchCropsForYear(int year) async {
+    setState(() => isChartLoading = true);
+
     final fetched = await CropService().getCropsByYear(year);
+
     chartInvestments = fetched.map((c) => c.totalInvested).toList();
     chartReturns = fetched.map((c) => c.totalReturns).toList();
     cropList = fetched.map((c) => c.name).toList();
-    setState(() =>
-      cropsByYear[year] = fetched
-    );
+
+    setState(() {
+      cropsByYear[year] = fetched;
+      isChartLoading = false;
+    });
   }
+
 
   Future<void> _refreshCurrentYearCrops() async {
     await _fetchCropsForYear(_selectedYear);
@@ -114,6 +121,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                   barColor2: Colors.green,
                   barColor: Colors.orange,
                   barWidth: 16,
+                  isLoading: isChartLoading,
                 )
               else
                 CommonLineChart(

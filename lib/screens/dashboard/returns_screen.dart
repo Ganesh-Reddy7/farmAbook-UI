@@ -144,7 +144,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                         title: "Select Year",
                         items: lastFiveYears,
                         displayText: (year) => year.toString(),
-                        backgroundColor: Colors.black87,
+                        backgroundColor: colors.card,
                         textColor: widget.primaryText,
                         selected: _selectedYear,
                       );
@@ -308,92 +308,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                   ],
                 ),
               )
-                  : Column(
-                children: currentYearReturns.map((ret) {
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ReturnDetailsScreen(
-                            crop: ret,
-                            accent: widget.accent,
-                            primaryText: widget.primaryText,
-                            secondaryText: widget.secondaryText,
-                            scaffoldBg: widget.scaffoldBg,
-                            cardGradientStart: widget.cardGradientStart,
-                            cardGradientEnd: widget.cardGradientEnd,
-                            cardBorder: widget.cardBorder,
-                          ),
-                        ),
-                      );
-                    },
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              widget.cardGradientStart.withOpacity(0.1),
-                              widget.cardGradientEnd.withOpacity(0.05),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: widget.cardBorder.withOpacity(0.3)),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter:
-                            ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              color: widget.scaffoldBg.withOpacity(0.5),
-                              child: Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.spaceBetween,
-                                crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        ret.cropName,
-                                        style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: widget.primaryText),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        "Total Production: ${ret.totalProduction}",
-                                        style: TextStyle(
-                                            color: widget.secondaryText),
-                                      ),
-                                    ],
-                                  ),
-                                  Text(
-                                    "₹${ret.totalReturns.toStringAsFixed(0)}",
-                                    style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: widget.accent),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                  : Column(children: currentYearReturns.map((ret) => _returnItem(ret)).toList(),
               ),
             ],
           ),
@@ -424,4 +339,96 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
       ),
     );
   }
+  Widget _returnItem(ReturnsList ret) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final double titleSize = screenW < 360 ? 14 : 16;
+    final double subTitleSize = screenW < 360 ? 12 : 13;
+    final double amountSize = screenW < 360 ? 15 : 17;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReturnDetailsScreen(
+              crop: ret,
+              accent: widget.accent,
+              primaryText: widget.primaryText,
+              secondaryText: widget.secondaryText,
+              scaffoldBg: widget.scaffoldBg,
+              cardGradientStart: widget.cardGradientStart,
+              cardGradientEnd: widget.cardGradientEnd,
+              cardBorder: widget.cardBorder,
+            ),
+          ),
+        );
+      },
+
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(16),
+
+        /// Updated design --- NO BLUR → SUPER FAST
+        decoration: BoxDecoration(
+          color: widget.cardGradientStart.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: widget.cardBorder.withOpacity(0.30),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 6,
+              offset: const Offset(2, 2),
+            ),
+          ],
+        ),
+
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // LEFT SIDE – Crop Name & Production
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ret.cropName,
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.bold,
+                      color: widget.primaryText,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Production: ${ret.totalProduction}",
+                    style: TextStyle(
+                      fontSize: subTitleSize,
+                      color: widget.secondaryText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            // RIGHT SIDE – Amount ₹
+            Text(
+              "₹${ret.totalReturns.toStringAsFixed(0)}",
+              style: TextStyle(
+                fontSize: amountSize,
+                fontWeight: FontWeight.bold,
+                color: widget.accent,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
 }

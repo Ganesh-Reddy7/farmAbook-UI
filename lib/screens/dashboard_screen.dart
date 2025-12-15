@@ -35,8 +35,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   void _loadReports() async {
     if (widget.user != null) {
       int year = _getFinancialYear();
-      Map<String, dynamic>? data =
-      await ReportsService().getReports(farmer: widget.user!, year: year);
+      Map<String, dynamic>? data = await ReportsService().getReports(farmer: widget.user!, year: year);
       setState(() => _reportData = data);
     }
   }
@@ -46,33 +45,19 @@ class _DashboardScreenState extends State<DashboardScreen>
     return now.month >= 5 ? now.year : now.year - 1;
   }
 
-  void _refreshReports() async {
-    if (widget.user != null) {
-      int year = _getFinancialYear();
-      Map<String, dynamic>? data =
-      await ReportsService().getReports(farmer: widget.user!, year: year);
-      setState(() => _reportData = data);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
     final Color primaryText = isDark ? Colors.white : Colors.black87;
-    final Color secondaryText =
-    isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color accent =
-    isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
-    final Color cardBorder =
-    isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+    final Color secondaryText = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
+    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
+    final Color cardBorder = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
 
     final double profitOrLoss = (_reportData?['profitOrLoss'] ?? 0).toDouble();
-    final double totalInvestment =
-    (_reportData?['totalInvestment'] ?? 0).toDouble();
+    final double totalInvestment = (_reportData?['totalInvestment'] ?? 0).toDouble();
     final double totalReturns = (_reportData?['totalReturns'] ?? 0).toDouble();
-    final double profitLossPercentage =
-    totalInvestment > 0 ? (profitOrLoss / totalInvestment) * 100 : 0;
+    final double profitLossPercentage = totalInvestment > 0 ? (profitOrLoss / totalInvestment) * 100 : 0;
     final Color profitLossColor = profitOrLoss >= 0 ? Colors.green : Colors.red;
 
     final cardData = [
@@ -85,7 +70,7 @@ class _DashboardScreenState extends State<DashboardScreen>
       {
         'title': 'Investments',
         'value': "₹${_formatter.format(totalInvestment)}",
-        'color': accent,
+        'color': Colors.orange,
         'icon': Icons.account_balance_wallet,
       },
       {
@@ -171,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 cardGradientStart: Colors.transparent,
                 cardGradientEnd: Colors.transparent,
                 cardBorder: cardBorder,
-                onDataChanged: _refreshReports,
+                onDataChanged: _loadReports,
               ),
               ReturnsScreen(
                 accent: accent,
@@ -181,7 +166,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                 cardGradientStart: Colors.transparent,
                 cardGradientEnd: Colors.transparent,
                 cardBorder: cardBorder,
-                onDataChanged: _refreshReports,
+                onDataChanged: _loadReports,
               ),
               CropsScreen(
                 accent: accent,
