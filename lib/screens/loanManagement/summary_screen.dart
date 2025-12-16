@@ -1,11 +1,9 @@
 import 'dart:ui';
 import 'package:farmabook/models/lentDto.dart';
-import 'package:farmabook/screens/loanManagement/debt_screen.dart';
-import 'package:farmabook/screens/loanManagement/lent_screen.dart';
-import 'package:farmabook/screens/loanManagement/maturity_bonds_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/loan_service.dart';
+import '../../theme/app_colors.dart';
 
 class SummaryScreen extends StatefulWidget {
   final VoidCallback? onSeeAllLent;
@@ -13,356 +11,485 @@ class SummaryScreen extends StatefulWidget {
   final VoidCallback? onSeeAllMaturity;
 
   const SummaryScreen({
-    Key? key,
+    super.key,
     this.onSeeAllLent,
     this.onSeeAllDebt,
     this.onSeeAllMaturity,
-  }) : super(key: key);
+  });
 
   @override
   State<SummaryScreen> createState() => _SummaryScreenState();
 }
 
-class _SummaryScreenState extends State<SummaryScreen> {
+class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   List<LentLoanDTO> loans = [];
   bool isLoading = true;
+  int? _touchedIndex;
+
 
   @override
   void initState() {
     super.initState();
-    fetchLoans();
+    _fetchLoans();
   }
 
-  Future<void> fetchLoans() async {
+  Future<void> _onRefresh() async {
+    setState(() => isLoading = true);
+    await _fetchLoans();
+  }
+
+
+  Future<void> _fetchLoans() async {
     try {
-      final fetchedLoans = await LoanService().getLoansForFarmer();
+      final data = await LoanService().getLoansForFarmer();
       setState(() {
-        loans = fetchedLoans;
+        loans = data;
         isLoading = false;
       });
-    } catch (e) {
+    } catch (_) {
       setState(() => isLoading = false);
-      debugPrint("Error fetching loans: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
-    // Theme Colors
-    final Color scaffoldBg = isDark ? const Color(0xFF0D1117) : const Color(0xFFF9FAFB);
-    final Color primaryText = isDark ? Colors.white : Colors.black87;
-    final Color secondaryText = isDark ? Colors.white70 : Colors.grey.shade600;
-    final Color cardGradientStart = isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.03);
-    final Color cardGradientEnd = isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01);
+    final primary = isDark ? Colors.white : Colors.black87;
+    final secondary = isDark ? Colors.white70 : Colors.grey.shade600;
+    final cardBg = isDark ? Colors.white.withOpacity(0.05) : Colors.white;
 
-    // Filtered Loan Lists
-    final lentLoans = loans.where((l) => l.isGiven == true && l.isClosed == false).toList();
-    final debtLoans = loans.where((l) => l.isGiven == false && l.isClosed == false).toList();
-    final nearMaturityLoans = loans.where((l) => l.nearMaturity == true && l.isClosed == false).toList();
+    final lent = loans.where((l) => l.isGiven == true && l.isClosed == false).toList();
+    final debt = loans.where((l) => l.isGiven == false && l.isClosed == false).toList();
+    final near = loans.where((l) => l.nearMaturity == true && l.isClosed == false).toList();
 
-    double sumPrincipal(List<LentLoanDTO> list) =>
-        list.fold(0, (sum, l) => sum + (l.principal ?? 0));
-    double sumInterest(List<LentLoanDTO> list) =>
-        list.fold(0, (sum, l) => sum + (l.currentInterest ?? 0));
+    double sumPrincipal(List<LentLoanDTO> list) => list.fold(0, (s, l) => s + (l.principal ?? 0));
 
-    // Pie Chart Container
-    Widget buildPieChartContainer(String title, List<PieChartSectionData> sections, double total, {bool isCount = false}) {
-      return Container(
-        padding: const EdgeInsets.all(20),
-        margin: const EdgeInsets.only(bottom: 24),
-        decoration: BoxDecoration(
-          color: cardGradientStart,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title,
-                style: TextStyle(
-                    color: primaryText, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-
-            // Pie Chart
-            SizedBox(
-              height: 140,
-              child: PieChart(
-                PieChartData(
-                  sections: sections,
-                  sectionsSpace: 4,
-                  centerSpaceRadius: 40,
-                  borderData: FlBorderData(show: false),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Horizontal Progress Bars
-            Column(
-              children: sections.map((s) {
-                double proportion = total > 0 ? s.value / total : 0;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      // Color Indicator
-                      Container(
-                        width: 14,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: s.color,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Progress Bar + Label
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              s.title ?? '',
-                              style: TextStyle(
-                                  color: secondaryText,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500),
-                            ),
-                            const SizedBox(height: 4),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: LinearProgressIndicator(
-                                value: proportion,
-                                minHeight: 10,
-                                color: s.color,
-                                backgroundColor: cardGradientEnd,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-                      Text(
-                        isCount ? "${s.value.toInt()} loans" : "₹${s.value.toInt()}",
-                        style: TextStyle(
-                            color: primaryText,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-
-            const SizedBox(height: 12),
-            Divider(color: cardGradientEnd.withOpacity(0.5)),
-            const SizedBox(height: 4),
-
-            // Total
-            Text(isCount ? "Total: ${total.toInt()} loans" : "Total: ₹${total.toInt()}",
-                style: TextStyle(
-                    color: primaryText, fontWeight: FontWeight.bold, fontSize: 16)),
-          ],
-        ),
-      );
-    }
-
-    // Premium Loan Card
-    Widget loanCard(LentLoanDTO loan) {
-      final bool isGiven = loan.isGiven ?? false;
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: Container(
-            width: 250,
-            height: 90,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isGiven
-                    ? [const Color(0xFF2193b0).withOpacity(0.5), const Color(0xFF6dd5ed).withOpacity(0.5)]
-                    : [const Color(0xFFff416c).withOpacity(0.5), const Color(0xFFff4b2b).withOpacity(0.5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Left Column: Source + Principal
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(loan.source ?? "Unknown",
-                        style: TextStyle(color: secondaryText, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text("₹${loan.principal?.toStringAsFixed(0) ?? '--'}",
-                        style: TextStyle(color: primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                // Center Column: Remaining
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text("Remaining", style: TextStyle(color: secondaryText, fontSize: 11)),
-                    const SizedBox(height: 2),
-                    Text("₹${loan.remainingPrincipal?.toStringAsFixed(0) ?? '--'}",
-                        style: TextStyle(color: primaryText, fontWeight: FontWeight.bold, fontSize: 13)),
-                  ],
-                ),
-                // Right Column: Interest + Maturity
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.percent, size: 14, color: Colors.white70),
-                        const SizedBox(width: 4),
-                        Text("${loan.interestRate?.toStringAsFixed(1) ?? '--'}%",
-                            style: TextStyle(color: primaryText, fontSize: 13, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      loan.nextMaturityDate ?? "No Date",
-                      style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    // Loan Section with See All
-    Widget loanSection(String title, List<LentLoanDTO> list, VoidCallback onSeeAll) {
-      if (list.isEmpty) return const SizedBox.shrink();
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title,
-                  style: TextStyle(color: primaryText, fontSize: 16, fontWeight: FontWeight.bold)),
-              TextButton(onPressed: onSeeAll, child: const Text("See All")),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 100,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: list.length > 4 ? 4 : list.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) => loanCard(list[i]),
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-      );
-    }
+    double sumInterest(List<LentLoanDTO> list) => list.fold(0, (s, l) => s + (l.currentInterest ?? 0));
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: colors.card,
       body: SafeArea(
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              buildPieChartContainer(
-                "Loan Distribution",
-                [
-                  PieChartSectionData(
-                      value: lentLoans.length.toDouble(),
-                      color: Colors.greenAccent,
-                      title: "Lent"),
-                  PieChartSectionData(
-                      value: debtLoans.length.toDouble(),
-                      color: Colors.redAccent,
-                      title: "Debt"),
-                ],
-                (lentLoans.length + debtLoans.length).toDouble(),
-                isCount: true,
-              ),
-              buildPieChartContainer(
-                "Lent Breakdown",
-                [
-                  PieChartSectionData(
-                    value: sumPrincipal(lentLoans),
-                    color: Colors.blueAccent,
-                    title: "Principal",
-                  ),
-                  PieChartSectionData(
-                    value: sumInterest(lentLoans),
-                    color: Colors.orangeAccent,
-                    title: "Interest",
-                  ),
-                ],
-                sumPrincipal(lentLoans) + sumInterest(lentLoans),
-              ),
-              buildPieChartContainer(
-                "Debt Breakdown",
-                [
-                  PieChartSectionData(
-                    value: sumPrincipal(debtLoans),
-                    color: Colors.redAccent,
-                    title: "Principal",
-                  ),
-                  PieChartSectionData(
-                    value: sumInterest(debtLoans),
-                    color: Colors.purpleAccent,
-                    title: "Interest",
-                  ),
-                ],
-                sumPrincipal(debtLoans) + sumInterest(debtLoans),
-              ),
-              loanSection(
-                "Lent Loans",
-                lentLoans,
-                widget.onSeeAllLent ?? () {},
-              ),
-              loanSection(
-                "Debt Loans",
-                debtLoans,
-                widget.onSeeAllDebt ?? () {},
-              ),
-              loanSection(
-                "Near Maturity Loans",
-                nearMaturityLoans,
-                widget.onSeeAllMaturity ?? () {},
-              ),
+            : RefreshIndicator(
+          onRefresh: _onRefresh,
+          backgroundColor: colors.card,
+          color: Colors.green,
+          displacement: 80,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _pieSection(
+                  title: "Loan Distribution",
+                  primary: primary,
+                  secondary: secondary,
+                  cardBg: cardBg,
+                  isCount: true,
+                  sections: [
+                    _pie(lent.length.toDouble(), Colors.greenAccent, "Lent"),
+                    _pie(debt.length.toDouble(), Colors.redAccent, "Debt"),
+                  ],
+                ),
+                _pieSection(
+                  title: "Lent Breakdown",
+                  primary: primary,
+                  secondary: secondary,
+                  cardBg: cardBg,
+                  sections: [
+                    _pie(sumPrincipal(lent), Colors.blueAccent, "Principal"),
+                    _pie(sumInterest(lent), Colors.orangeAccent, "Interest"),
+                  ],
+                ),
 
-            ],
+                _pieSection(
+                  title: "Debt Breakdown",
+                  primary: primary,
+                  secondary: secondary,
+                  cardBg: cardBg,
+                  sections: [
+                    _pie(sumPrincipal(debt), Colors.redAccent, "Principal"),
+                    _pie(sumInterest(debt), Colors.purpleAccent, "Interest"),
+                  ],
+                ),
+
+                _loanSection(
+                  "Lent Loans",
+                  lent,
+                  primary,
+                  secondary,
+                  widget.onSeeAllLent,
+                ),
+                _loanSection(
+                  "Debt Loans",
+                  debt,
+                  primary,
+                  secondary,
+                  widget.onSeeAllDebt,
+                ),
+                _loanSection(
+                  "Near Maturity Loans",
+                  near,
+                  primary,
+                  secondary,
+                  widget.onSeeAllMaturity,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  // ============================================================
+  Widget _pieSection({
+    required String title,
+    required Color primary,
+    required Color secondary,
+    required Color cardBg,
+    required List<PieChartSectionData> sections,
+    bool isCount = false,
+  }) {
+    final total = sections.fold(0.0, (s, e) => s + e.value);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: _card(cardBg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── TITLE ─────────────────────────────
+          Text(
+            title,
+            style: TextStyle(
+              color: primary,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 40),
+
+          // ── PIE + CENTER TOTAL ────────────────
+          SizedBox(
+            height: 160,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PieChart(
+                  PieChartData(
+                    sections: sections.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final s = entry.value;
+                      final isActive = _touchedIndex == index;
+                      final hasSelection = _touchedIndex != null;
+
+                      return s.copyWith(
+                        title: "",
+                        radius: isActive ? 56 : 46,
+                        color: !hasSelection
+                            ? s.color
+                            : isActive
+                            ? s.color
+                            : s.color.withOpacity(0.45),
+                      );
+                    }).toList(),
+                    centerSpaceRadius: 55,
+                    sectionsSpace: 3,
+                    borderData: FlBorderData(show: false),
+                  ),
+                ),
+
+                // CENTER TEXT
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isCount ? "Total Loans" : "Total",
+                      style: TextStyle(
+                        color: secondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isCount
+                          ? total.toInt().toString()
+                          : "₹${total.toInt()}",
+                      style: TextStyle(
+                        color: primary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 30),
+
+          Column(
+            children: sections.asMap().entries.map((entry) {
+              final index = entry.key;
+              final s = entry.value;
+
+              return InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: () {
+                  setState(() {
+                    _touchedIndex =
+                    _touchedIndex == index ? null : index;
+                  });
+                },
+                child: _legendRow(
+                  s,
+                  total,
+                  isCount,
+                  primary,
+                  secondary,
+                  isActive: _touchedIndex == index,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _legendRow(
+      PieChartSectionData s,
+      double total,
+      bool isCount,
+      Color primary,
+      Color secondary, {
+        bool isActive = false,
+      }) {
+    final double percent = total == 0 ? 0 : s.value / total;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          // Color Dot
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: s.color,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+
+          // Label
+          Expanded(
+            flex: 2,
+            child: Text(
+              s.title ?? "",
+              style: TextStyle(
+                color: isActive ? primary : secondary,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 13,
+              ),
+            ),
+          ),
+
+          // Fill Percentage Bar
+          Expanded(
+            flex: 4,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: percent,
+                minHeight: isActive ? 12 : 10,
+                color: s.color,
+                backgroundColor: Colors.grey.withOpacity(0.25),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // Percentage
+          Text(
+            "${(percent * 100).toStringAsFixed(0)}%",
+            style: TextStyle(
+              color: secondary,
+              fontSize: 12,
+            ),
+          ),
+
+          const SizedBox(width: 10),
+
+          // Value
+          Text(
+            isCount
+                ? "${s.value.toInt()}"
+                : "₹${s.value.toInt()}",
+            style: TextStyle(
+              color: primary,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _loanSection(
+      String title,
+      List<LentLoanDTO> list,
+      Color primary,
+      Color secondary,
+      VoidCallback? onSeeAll,
+      ) {
+    if (list.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                color: primary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (onSeeAll != null)
+              TextButton(
+                onPressed: onSeeAll,
+                child: const Text("See all"),
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 10),
+
+        SizedBox(
+          height: 96, // ✅ proper height
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: list.length > 5 ? 5 : list.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (_, i) =>
+                _loanCardWide(list[i], primary, secondary),
+          ),
+        ),
+
+        const SizedBox(height: 18),
+      ],
+    );
+  }
+  Widget _loanCardWide(
+      LentLoanDTO loan,
+      Color primary,
+      Color secondary,
+      ) {
+    final bool isGiven = loan.isGiven ?? false;
+
+    final Color accent =
+    isGiven ? Colors.greenAccent : Colors.redAccent;
+
+    return Container(
+      width: 280, // 🔥 comfortable width
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.045),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: accent.withOpacity(0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // ── TOP ROW ─────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  loan.source ?? "Unknown",
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: secondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Text(
+                "${loan.interestRate?.toStringAsFixed(1) ?? '--'}%",
+                style: TextStyle(
+                  color: primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          // ── AMOUNT ──────────────────────
+          Text(
+            "₹${loan.principal?.toStringAsFixed(0) ?? '--'}",
+            style: TextStyle(
+              color: primary,
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+
+          // ── FOOTER ──────────────────────
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "Remaining",
+                style: TextStyle(
+                  color: secondary,
+                  fontSize: 11,
+                ),
+              ),
+              Text(
+                loan.nextMaturityDate ?? "--",
+                style: const TextStyle(
+                  color: Colors.orangeAccent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  PieChartSectionData _pie(double v, Color c, String t) =>
+      PieChartSectionData(value: v, color: c, title: t);
+
+  BoxDecoration _card(Color color) => BoxDecoration(
+    color: color,
+    borderRadius: BorderRadius.circular(16),
+    border: Border.all(color: Colors.white.withOpacity(0.08)),
+  );
 }

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import 'add_entity/add_lent.dart';
 import 'package:farmabook/models/lentDto.dart';
 import 'package:farmabook/services/loan_service.dart';
@@ -12,12 +13,13 @@ class LentScreen extends StatefulWidget {
   @override
   State<LentScreen> createState() => _LentScreenState();
 }
-
 enum LoanFilter { active, closed, nearMaturity }
 enum LoanSort { amount, interest, maturity }
 enum AmountType { actual, updatedPrincipal, returns, total }
 
-class _LentScreenState extends State<LentScreen> {
+class _LentScreenState extends State<LentScreen> with AutomaticKeepAliveClientMixin{
+  @override
+  bool get wantKeepAlive => true;
   List<LentLoanDTO> allLoans = [];
   List<LentLoanDTO> filteredLoans = [];
   LoanFilter selectedFilter = LoanFilter.active;
@@ -149,6 +151,7 @@ class _LentScreenState extends State<LentScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
     final Color primaryText = isDark ? Colors.white : Colors.black87;
     final Color secondaryText =
@@ -160,28 +163,53 @@ class _LentScreenState extends State<LentScreen> {
       backgroundColor: scaffoldBg,
       body: RefreshIndicator(
         onRefresh: _refreshLoans,
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
+        backgroundColor: colors.card,
+        color: Colors.green,
+        child: isLoading ? const Center(child: CircularProgressIndicator())
             : ListView(
           padding: const EdgeInsets.all(16),
           children: [
             // Summary Cards
             Wrap(
-              spacing: 10,
+              spacing: 14,
               runSpacing: 10,
               children: [
-                _buildSummaryCard(
-                    "Total Lent", "₹$totalLent", Icons.attach_money,
-                    accent, primaryText),
-                _buildSummaryCard(
-                    "Interest", "₹$totalInterest", Icons.percent,
-                    Colors.orangeAccent, primaryText),
-                _buildSummaryCard(
-                    "Active Loans", "$activeCount", Icons.play_arrow,
-                    Colors.green, primaryText),
-                _buildSummaryCard(
-                    "Closed Loans", "$closedCount", Icons.done_all,
-                    Colors.grey, primaryText),
+                RepaintBoundary(
+                  child: buildSummaryCard(
+                    title: "Total Lent",
+                    value: "₹$totalLent",
+                    icon: Icons.attach_money,
+                    iconColor: Colors.green,
+                    textColor: Colors.white,
+                  ),
+                ),
+                RepaintBoundary(
+                  child: buildSummaryCard(
+                    title: "Interest",
+                    value: "₹$totalInterest",
+                    icon: Icons.percent,
+                    iconColor: Colors.orange,
+                    textColor: Colors.white,
+                  ),
+                ),
+                RepaintBoundary(
+                  child: buildSummaryCard(
+                    title: "Active Loans",
+                    value: "$activeCount",
+                    icon: Icons.play_arrow,
+                    iconColor: Colors.greenAccent,
+                    textColor: Colors.white,
+                  ),
+                ),
+                RepaintBoundary(
+                  child: buildSummaryCard(
+                    title: "Closed Loans",
+                    value: "$closedCount",
+                    icon: Icons.done_all,
+                    iconColor: Colors.grey,
+                    textColor: Colors.white,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -260,7 +288,7 @@ class _LentScreenState extends State<LentScreen> {
                   onTap: () async {
                     final selected = await showModalBottomSheet<LoanSort>(
                       context: context,
-                      backgroundColor: Colors.grey[900],
+                      backgroundColor: colors.card,
                       shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                       ),
@@ -395,48 +423,79 @@ class _LentScreenState extends State<LentScreen> {
     );
   }
 
-  Widget _buildSummaryCard(
-      String title, String value, IconData icon, Color iconColor, Color textColor) {
-    return Container(
-      width: (MediaQuery.of(context).size.width - 42) / 2,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-            colors: [iconColor.withOpacity(0.1), iconColor.withOpacity(0.05)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: iconColor.withOpacity(0.3)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 5))
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: iconColor, size: 28),
+  Widget buildSummaryCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color iconColor,
+    required Color textColor,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double width = (constraints.maxWidth / 2.1).clamp(140.0, 220.0);
+
+        return Container(
+          width: width,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                iconColor.withOpacity(0.10),
+                iconColor.withOpacity(0.04),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: iconColor.withOpacity(0.25),
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14000000),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(title,
-              style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w500, color: textColor),
-              textAlign: TextAlign.center),
-          const SizedBox(height: 4),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
-        ],
-      ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withOpacity(0.18),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: iconColor, size: 26),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
+
 
   Widget _buildFilterButton(
       String text, bool selected, VoidCallback onTap, Color color) {
@@ -455,68 +514,95 @@ class _LentScreenState extends State<LentScreen> {
     );
   }
 
-  Widget _buildLoanCard(LentLoanDTO loan, Color accent, Color primaryText,
-      Color secondaryText) {
+  Widget _buildLoanCard(
+      LentLoanDTO loan,
+      Color accent,
+      Color primaryText,
+      Color secondaryText,
+      ) {
     final bool isActive = loan.isClosed != true;
     final bool isNearMaturity = loan.nearMaturity == true;
 
-    double displayAmount;
-    switch (selectedAmountType) {
-      case AmountType.actual:
-        displayAmount = loan.principal ?? 0;
-        break;
-      case AmountType.updatedPrincipal:
-        displayAmount = loan.updatedPrincipal ?? 0;
-        break;
-      case AmountType.returns:
-        displayAmount = loan.currentInterest ?? 0;
-        break;
-      case AmountType.total:
-        displayAmount = (loan.updatedPrincipal ?? 0) +
-            (loan.currentInterest ?? 0);
-        break;
-    }
+    final double displayAmount = () {
+      switch (selectedAmountType) {
+        case AmountType.actual:
+          return loan.principal ?? 0;
+        case AmountType.updatedPrincipal:
+          return loan.updatedPrincipal ?? 0;
+        case AmountType.returns:
+          return loan.currentInterest ?? 0;
+        case AmountType.total:
+          return (loan.updatedPrincipal ?? 0) +
+              (loan.currentInterest ?? 0);
+      }
+    }();
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                  colors: [
-                    Colors.white.withOpacity(0.05),
-                    Colors.white.withOpacity(0.01)
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight),
-              border: Border.all(color: accent.withOpacity(0.3), width: 1.5),
-              borderRadius: BorderRadius.circular(16),
+    final TextStyle titleStyle = TextStyle(
+      color: primaryText,
+      fontWeight: FontWeight.bold,
+    );
+
+    final TextStyle subtitleStyle = TextStyle(
+      color: secondaryText,
+    );
+
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.05),
+                Colors.white.withOpacity(0.01),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: ListTile(
-              leading: Icon(Icons.person, color: accent, size: 32),
-              title: Text(
-                  "${loan.source ?? 'Unknown'} - ₹${displayAmount.toStringAsFixed(0)}",
-                  style:
-                  TextStyle(color: primaryText, fontWeight: FontWeight.bold)),
-              subtitle: Text(
-                  "Interest: ${loan.interestRate?.toStringAsFixed(2) ?? '0'}% | Status: ${isActive ? (isNearMaturity ? "Near Maturity" : "Active") : "Closed"}",
-                  style: TextStyle(color: secondaryText)),
-              trailing: isActive
-                  ? Icon(isNearMaturity ? Icons.timelapse : Icons.check_circle_outline,
-                  color: isNearMaturity ? Colors.purple : accent)
-                  : const Icon(Icons.done_all, color: Colors.grey),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => LoanDetailScreen(loan: loan),
-                  ),
-                );
-              },
+            border: Border.all(
+              color: accent.withOpacity(0.3),
+              width: 1.5,
             ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            leading: Icon(
+              Icons.person,
+              color: accent,
+              size: 32,
+            ),
+            title: Text(
+              "${loan.source ?? 'Unknown'} - ₹${displayAmount.toStringAsFixed(0)}",
+              style: titleStyle,
+            ),
+            subtitle: Text(
+              "Interest: ${loan.interestRate?.toStringAsFixed(2) ?? '0'}% | "
+                  "Status: ${isActive ? (isNearMaturity ? "Near Maturity" : "Active") : "Closed"}",
+              style: subtitleStyle,
+            ),
+            trailing: isActive
+                ? Icon(
+              isNearMaturity
+                  ? Icons.timelapse
+                  : Icons.check_circle_outline,
+              color: isNearMaturity ? Colors.purple : accent,
+            )
+                : const Icon(
+              Icons.done_all,
+              color: Colors.grey,
+            ),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LoanDetailScreen(loan: loan),
+                ),
+              );
+            },
           ),
         ),
       ),

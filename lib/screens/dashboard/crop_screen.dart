@@ -297,7 +297,14 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
 
   // -------------------- Build Crop Card --------------------
   Widget _buildCropCard(Crop crop) {
-    return GestureDetector(
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+
+      // 🔴 Disable visual feedback (NO lightening on back)
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+
       onTap: () async {
         final result = await Navigator.push(
           context,
@@ -317,73 +324,64 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         );
         if (result == true) _refreshCurrentYearCrops();
       },
+
       child: Container(
-        padding: const EdgeInsets.all(16),
         margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              widget.cardGradientStart.withOpacity(0.0),
-              widget.cardGradientEnd.withOpacity(0.1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
+          color: widget.cardGradientStart.withOpacity(0.06),
           border: Border.all(
-              color: widget.cardBorder.withOpacity(0.5), width: 1),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 6,
-                offset: const Offset(0, 3))
-          ],
+            color: widget.cardBorder.withOpacity(0.35),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── TITLE ROW ─────────────────────────────
             Row(
               children: [
                 Expanded(
-                  child: Text(crop.name,
-                      style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: widget.primaryText)),
+                  child: Text(
+                    crop.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16.5, // ⬆️ slightly bigger
+                      fontWeight: FontWeight.w600,
+                      color: widget.primaryText,
+                    ),
+                  ),
                 ),
-                Text(
-                    "${crop.plantedDate?.year}-${crop.plantedDate?.month.toString().padLeft(2, '0')}-${crop.plantedDate?.day.toString().padLeft(2, '0')}",
-                    style: TextStyle(
-                        fontSize: 13, color: widget.secondaryText)),
-                const SizedBox(width: 10),
-                Text("Area: ${crop.area.toStringAsFixed(1)}",
-                    style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: widget.accent)),
-                const Icon(Icons.arrow_forward_ios,
-                    size: 14, color: Colors.grey),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: Colors.grey,
+                ),
               ],
             ),
+
             const SizedBox(height: 8),
+
+            // ── META INFO (IMPROVED) ──────────────────
+            _metaRow(crop),
+
+            const SizedBox(height: 12),
+
+            // ── STATS ROW ─────────────────────────────
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Qty: ${crop.value?.toStringAsFixed(0) ?? '0'}",
-                    style: TextStyle(
-                        fontSize: 13, color: widget.primaryText)),
-                Text(
-                    "Investment: ₹${crop.totalInvested?.toStringAsFixed(0) ?? '0'}",
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.redAccent)),
-                Text(
-                    "Returns: ₹${crop.totalReturns?.toStringAsFixed(0) ?? '0'}",
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.green)),
+                _statChip(
+                  label: "Investment",
+                  value: "₹${crop.totalInvested?.toStringAsFixed(0) ?? '0'}",
+                  color: Colors.redAccent,
+                ),
+                const SizedBox(width: 12),
+                _statChip(
+                  label: "Returns",
+                  value: "₹${crop.totalReturns?.toStringAsFixed(0) ?? '0'}",
+                  color: Colors.green,
+                ),
               ],
             ),
           ],
@@ -391,6 +389,91 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
       ),
     );
   }
+
+  Widget _statChip({
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: color.withOpacity(0.08),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 11.5,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _metaRow(Crop crop) {
+    return Row(
+      children: [
+        _metaItem(
+          icon: Icons.calendar_today,
+          text: _formatDate(crop.plantedDate),
+        ),
+        const SizedBox(width: 14),
+        _metaItem(
+          icon: Icons.square_foot,
+          text: "${crop.area.toStringAsFixed(1)} acres",
+        ),
+        const SizedBox(width: 14),
+        _metaItem(
+          icon: Icons.inventory_2,
+          text: "Qty ${crop.value?.toStringAsFixed(0) ?? '0'}",
+        ),
+      ],
+    );
+  }
+
+  Widget _metaItem({
+    required IconData icon,
+    required String text,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: widget.secondaryText),
+        const SizedBox(width: 4),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13.8, // ⬆️ readable
+            fontWeight: FontWeight.w500,
+            color: widget.secondaryText,
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return "-";
+    return "${date.day}-${date.month}-${date.year}";
+  }
+
+
 
   Widget _totalAreaQuantityCard(double totalArea, double totalQty) {
     return Container(

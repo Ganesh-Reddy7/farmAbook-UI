@@ -12,10 +12,8 @@ class LoanManagementScreen extends StatefulWidget {
   State<LoanManagementScreen> createState() => _LoanManagementScreenState();
 }
 
-class _LoanManagementScreenState extends State<LoanManagementScreen>
-    with TickerProviderStateMixin {
+class _LoanManagementScreenState extends State<LoanManagementScreen> with TickerProviderStateMixin {
   late TabController _tabController;
-
   final Map<String, double> cardValues = {
     "Total Debt": 50000,
     "Total Lent": 30000,
@@ -78,7 +76,6 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 🔹 Compact but Wider Summary Cards
             SizedBox(
               height: 70, // reduced height
               child: ListView.separated(
@@ -104,7 +101,6 @@ class _LoanManagementScreenState extends State<LoanManagementScreen>
                 },
               ),
             ),
-            const SizedBox(height: 12),
             TabBar(
               controller: _tabController,
               labelColor: accent,
