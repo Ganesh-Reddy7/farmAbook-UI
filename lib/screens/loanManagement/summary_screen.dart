@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../services/loan_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/slide_route.dart';
+import 'calculatorScreen/InterestCalculatorScreen.dart';
 
 class SummaryScreen extends StatefulWidget {
   final VoidCallback? onSeeAllLent;
@@ -143,6 +145,20 @@ class _SummaryScreenState extends State<SummaryScreen> with AutomaticKeepAliveCl
             ),
           ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: "calculator_fab",
+        backgroundColor: Colors.green,
+        child: const Icon(Icons.calculate,
+          color: Colors.white,
+        ),
+        onPressed: () {
+          Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: const InterestCalculatorScreen(),
+            ),
+          );
+        },
       ),
     );
   }

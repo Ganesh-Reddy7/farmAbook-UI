@@ -4,6 +4,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../models/crop.dart';
 import '../../services/crop_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/slide_route.dart';
 import '../../widgets/barChart.dart';
 import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
@@ -274,10 +275,9 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         heroTag: "add-crop",
         backgroundColor: widget.accent,
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddCropScreen(
+          final result = await Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: AddCropScreen(
                 scaffoldBg: widget.scaffoldBg,
                 primaryText: widget.primaryText,
                 secondaryText: widget.secondaryText,
@@ -288,7 +288,9 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
               ),
             ),
           );
-          if (result == true) _refreshCurrentYearCrops();
+          if (result == true) {
+            _refreshCurrentYearCrops();
+          }
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -299,17 +301,13 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
   Widget _buildCropCard(Crop crop) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
-
-      // 🔴 Disable visual feedback (NO lightening on back)
       splashColor: Colors.transparent,
       highlightColor: Colors.transparent,
       hoverColor: Colors.transparent,
-
       onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => CropDetailScreen(
+        final result = await Navigator.of(context).push(
+          SlideFromRightRoute(
+            page: CropDetailScreen(
               crop: crop,
               accent: widget.accent,
               primaryText: widget.primaryText,
@@ -322,9 +320,10 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
             ),
           ),
         );
-        if (result == true) _refreshCurrentYearCrops();
+        if (result == true) {
+          _refreshCurrentYearCrops();
+        }
       },
-
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(14),
@@ -338,7 +337,6 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── TITLE ROW ─────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -347,7 +345,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 16.5, // ⬆️ slightly bigger
+                      fontSize: 16.5,
                       fontWeight: FontWeight.w600,
                       color: widget.primaryText,
                     ),
@@ -362,13 +360,9 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
             ),
 
             const SizedBox(height: 8),
-
-            // ── META INFO (IMPROVED) ──────────────────
             _metaRow(crop),
-
             const SizedBox(height: 12),
 
-            // ── STATS ROW ─────────────────────────────
             Row(
               children: [
                 _statChip(
@@ -458,7 +452,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         Text(
           text,
           style: TextStyle(
-            fontSize: 13.8, // ⬆️ readable
+            fontSize: 13.8,
             fontWeight: FontWeight.w500,
             color: widget.secondaryText,
           ),
@@ -467,13 +461,10 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
     );
   }
 
-
   String _formatDate(DateTime? date) {
     if (date == null) return "-";
     return "${date.day}-${date.month}-${date.year}";
   }
-
-
 
   Widget _totalAreaQuantityCard(double totalArea, double totalQty) {
     return Container(
@@ -549,7 +540,6 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
       ],
     );
   }
-
 
   Color _getColorForCrop(Crop crop) {
     final index = cropsByYear[_selectedYear]?.indexOf(crop) ?? 0;

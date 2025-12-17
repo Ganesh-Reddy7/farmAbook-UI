@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import '../../../utils/slide_route.dart';
 import '../../../widgets/no_data_widget.dart';
 import '../add_entities/add_client.dart';
 import 'client_details.dart';
@@ -28,7 +29,6 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
     _loadClients();
   }
 
-  // -------------------- Load Clients --------------------
   Future<void> _loadClients() async {
     try {
       final data = await tractorService.getClients();
@@ -44,7 +44,6 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
             "phone": c["phone"],
           };
         }).toList();
-
         filteredClients = List.from(clients);
       });
     } catch (e) {
@@ -54,7 +53,6 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
     }
   }
 
-  // -------------------- Search Logic --------------------
   void _searchClient(String query) {
     setState(() {
       if (query.isEmpty) {
@@ -93,11 +91,11 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
           style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
         ),
         onPressed: () async {
-          final added = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddClientPage()),
+          final added = await Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: const AddClientPage(),
+            ),
           );
-
           if (added == true) {
             setState(() => isLoading = true);
             await _loadClients();
@@ -184,17 +182,15 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
 
           return InkWell(
             onTap: () async {
-              final updated = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => ClientDetailsPage(
+              final updated = await Navigator.of(context).push(
+                SlideFromRightRoute(
+                  page: ClientDetailsPage(
                     clientId: client["id"],
                     clientName: client["name"],
                     phone: client["phone"],
                   ),
                 ),
               );
-
               if (updated == true) {
                 await _loadClients();
               }

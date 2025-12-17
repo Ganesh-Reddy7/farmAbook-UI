@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/slide_route.dart';
 import 'add_entity/add_lent.dart';
 import 'package:farmabook/models/lentDto.dart';
 import 'package:farmabook/services/loan_service.dart';
@@ -245,7 +246,6 @@ class _LentScreenState extends State<LentScreen> with AutomaticKeepAliveClientMi
               ],
             ),
             const SizedBox(height: 16),
-
             SizedBox(
               height: 40,
               child: TextField(
@@ -277,9 +277,7 @@ class _LentScreenState extends State<LentScreen> with AutomaticKeepAliveClientMi
                 },
               ),
             ),
-
             const SizedBox(height: 12),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -332,15 +330,12 @@ class _LentScreenState extends State<LentScreen> with AutomaticKeepAliveClientMi
                     ),
                   ),
                 ),
-
                 // Amount Type Toggle (Right Edge)
                 GestureDetector(
                   onTap: () {
                     setState(() {
-                      final currentIndex =
-                      AmountType.values.indexOf(selectedAmountType);
-                      final nextIndex =
-                          (currentIndex + 1) % AmountType.values.length;
+                      final currentIndex = AmountType.values.indexOf(selectedAmountType);
+                      final nextIndex = (currentIndex + 1) % AmountType.values.length;
                       selectedAmountType = AmountType.values[nextIndex];
                     });
                   },
@@ -366,23 +361,24 @@ class _LentScreenState extends State<LentScreen> with AutomaticKeepAliveClientMi
               ],
             ),
             const SizedBox(height: 12),
-
-            // Loan List
             if (filteredLoans.isEmpty)
               _noDataContainer(scaffoldBg, secondaryText)
             else
-              ...filteredLoans.map((loan) =>
-                  _buildLoanCard(loan, accent, primaryText, secondaryText)),
+              ...filteredLoans.map((loan) => _buildLoanCard(loan, accent, primaryText, secondaryText)),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: "lent_fab",
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddLoanScreen(isGiven: true)),
+          final result = await Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: const AddLoanScreen(isGiven: true),
+            ),
           );
-          if (result == true) fetchLentLoans();
+          if (result == true) {
+            fetchLentLoans();
+          }
         },
         backgroundColor: accent,
         child: const Icon(Icons.add, color: Colors.white),
@@ -596,10 +592,9 @@ class _LentScreenState extends State<LentScreen> with AutomaticKeepAliveClientMi
               color: Colors.grey,
             ),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => LoanDetailScreen(loan: loan),
+              Navigator.of(context).push(
+                SlideFromRightRoute(
+                  page: LoanDetailScreen(loan: loan),
                 ),
               );
             },

@@ -3,6 +3,7 @@ import 'package:farmabook/screens/loanManagement/detail_screen/loan_detail_scree
 import 'package:farmabook/services/loan_service.dart';
 import 'package:flutter/material.dart';
 import '../../models/lentDto.dart';
+import '../../utils/slide_route.dart';
 
 class MaturityBondsScreen extends StatefulWidget {
   const MaturityBondsScreen({Key? key}) : super(key: key);
@@ -448,10 +449,9 @@ class _MaturityBondsScreenState extends State<MaturityBondsScreen> with Automati
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => LoanDetailScreen(loan: bond),
+            Navigator.of(context).push(
+              SlideFromRightRoute(
+                page: LoanDetailScreen(loan: bond),
               ),
             );
           },
@@ -459,7 +459,7 @@ class _MaturityBondsScreenState extends State<MaturityBondsScreen> with Automati
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: const [
-                  Color(0x0DFFFFFF), // cheaper than withOpacity
+                  Color(0x0DFFFFFF),
                   Color(0x05FFFFFF),
                 ],
                 begin: Alignment.topLeft,

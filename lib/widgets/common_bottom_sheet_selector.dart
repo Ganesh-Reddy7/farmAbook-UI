@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class CommonBottomSheetSelector {
-  /// Generic bottom sheet selector
   static Future<T?> show<T>({
     required BuildContext context,
     required String title,

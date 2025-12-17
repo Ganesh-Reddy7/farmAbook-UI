@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../utils/slide_route.dart';
 import '../../../widgets/no_data_widget.dart';
 import '../add_entities/add_close_payment.dart';
 import '../add_entities/add_return.dart';
@@ -306,10 +307,9 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
             heroTag: "addBtn",
             backgroundColor: Colors.green,
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AddReturnPage(
+              Navigator.of(context).push(
+                SlideFromRightRoute(
+                  page: AddReturnPage(
                     clientId: widget.clientId,
                     clientName: widget.clientName,
                   ),
@@ -343,10 +343,9 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
 
         return InkWell(
           onTap: () async {
-            final updated = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PaymentDetailsPage(
+            final updated = await Navigator.of(context).push(
+              SlideFromRightRoute(
+                page: PaymentDetailsPage(
                   activityId: item["id"],
                   title: item["notes"] ?? "Work",
                   totalAmount: (item["amountEarned"] ?? 0).toDouble(),
@@ -362,7 +361,6 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
               _fetchActivities();
             }
           },
-
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(

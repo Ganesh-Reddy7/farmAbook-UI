@@ -4,6 +4,7 @@ import 'package:farmabook/widgets/sectionTitle.dart';
 import 'package:farmabook/widgets/tractorInfoCard.dart';
 import 'package:flutter/material.dart';
 import '../../services/TractorService/tractor_service.dart';
+import '../../utils/slide_route.dart';
 import '../../widgets/no_data_widget.dart';
 import 'add_entities/add_close_payment.dart';
 import 'add_entities/add_return.dart';
@@ -900,7 +901,11 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
             heroTag: "viewClients",
             backgroundColor: Colors.blueGrey,
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ViewClientsPage()));
+              Navigator.of(context).push(
+                SlideFromRightRoute(
+                  page: const ViewClientsPage(),
+                ),
+              );
             },
             child: const Icon(Icons.people, color: Colors.white),
           ),
@@ -910,9 +915,10 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
             heroTag: "addReturn",
             backgroundColor: Colors.green,
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AddReturnPage()),
+              Navigator.of(context).push(
+                SlideFromRightRoute(
+                  page: const AddReturnPage(),
+                ),
               );
             },
             child: const Icon(Icons.add, color: Colors.white),
@@ -960,22 +966,19 @@ class _ReturnListItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: () {
           if (!context.mounted) return;
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  PaymentDetailsPage(
-                    activityId: activity["id"] ?? 0,
-                    title: activity["clientName"] ?? "Unknown",
-                    totalAmount: (activity["amountEarned"] ?? 0).toDouble(),
-                    amountReceived: (activity["amountPaid"] ?? 0).toDouble(),
-                    date: activity["activityDate"] ?? "",
-                    acres: (activity["acresWorked"] ?? 0).toDouble(),
-                  ),
+          Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: PaymentDetailsPage(
+                activityId: activity["id"] ?? 0,
+                title: activity["clientName"] ?? "Unknown",
+                totalAmount: (activity["amountEarned"] ?? 0).toDouble(),
+                amountReceived: (activity["amountPaid"] ?? 0).toDouble(),
+                date: activity["activityDate"] ?? "",
+                acres: (activity["acresWorked"] ?? 0).toDouble(),
+              ),
             ),
           );
         },
-
         child: Column(
           children: [
             Container(

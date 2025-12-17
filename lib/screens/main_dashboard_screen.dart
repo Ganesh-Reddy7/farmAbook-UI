@@ -2,6 +2,7 @@ import 'package:farmabook/screens/userProfile/profile_screen.dart';
 import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/session_service.dart';
+import '../utils/slide_route.dart';
 import 'dashboard_screen.dart';
 import 'loanManagement/loan_management_screen.dart';
 import 'tractorTrack/tractor_screen.dart';
@@ -45,8 +46,8 @@ class _MainDashboardScreenState extends State<MainDashboardScreen> {
     if (_user == null) return;
 
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => ProfileScreen(
+      SlideFromRightRoute(
+        page: ProfileScreen(
           user: _user,
           onToggleTheme: widget.onToggleTheme,
         ),

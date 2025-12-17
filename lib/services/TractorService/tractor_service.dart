@@ -65,8 +65,6 @@ class TractorService {
       "$baseUrl/tractor/farmer/${auth["farmerId"]}/getTractorDetails",
     );
 
-    log("Fetching tractor details from: $url");
-
     try {
       final response = await http.get(
         url,
@@ -75,10 +73,6 @@ class TractorService {
           "Authorization": "Bearer ${auth["token"]}",
         },
       );
-
-      log("➡ API Status: ${response.statusCode}");
-      log("➡ API Response: ${response.body}");
-
       if (response.statusCode != 200) {
         throw Exception("Failed to load tractors: ${response.statusCode}");
       }

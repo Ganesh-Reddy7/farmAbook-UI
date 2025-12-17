@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../models/return_model.dart';
 import '../../services/return_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/slide_route.dart';
 import '../../widgets/barChart.dart';
 import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
@@ -319,10 +320,9 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
         backgroundColor: widget.accent,
         heroTag: "add-returns",
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddReturnScreen(
+          final result = await Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: AddReturnScreen(
                 scaffoldBg: widget.scaffoldBg,
                 primaryText: widget.primaryText,
                 secondaryText: widget.secondaryText,
@@ -333,7 +333,9 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
               ),
             ),
           );
-          if (result == true) _refreshCurrentYearReturns();
+          if (result == true) {
+            _refreshCurrentYearReturns();
+          }
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -348,10 +350,9 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ReturnDetailsScreen(
+        Navigator.of(context).push(
+          SlideFromRightRoute(
+            page: ReturnDetailsScreen(
               crop: ret,
               accent: widget.accent,
               primaryText: widget.primaryText,
@@ -364,7 +365,6 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
           ),
         );
       },
-
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
         padding: const EdgeInsets.all(16),

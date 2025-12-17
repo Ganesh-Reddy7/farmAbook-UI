@@ -5,6 +5,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../../models/investment.dart';
 import '../../services/investment_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/slide_route.dart';
 import '../../widgets/barChart.dart';
 import '../../widgets/commonLineChart.dart';
 import '../../widgets/common_bottom_sheet_selector.dart';
@@ -202,10 +203,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
         backgroundColor: widget.accent,
         heroTag: "add-investment",
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => AddInvestmentScreen(
+          final result = await Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: AddInvestmentScreen(
                 scaffoldBg: widget.scaffoldBg,
                 primaryText: widget.primaryText,
                 secondaryText: widget.secondaryText,
@@ -216,7 +216,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
               ),
             ),
           );
-          if (result == true) _refreshCurrentYearInvestments();
+          if (result == true) {
+            _refreshCurrentYearInvestments();
+          }
         },
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -384,10 +386,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
     return GestureDetector(
       onTap: () {
         if (hasWorkers) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => WorkerListScreen(
+          Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: WorkerListScreen(
                 investment: inv,
                 accent: widget.accent,
                 primaryText: widget.primaryText,
@@ -401,7 +402,6 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           );
         }
       },
-
       child: RepaintBoundary(
         child: Container(
           padding: const EdgeInsets.all(16),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:farmabook/models/lentDto.dart';
 import 'package:farmabook/services/loan_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/slide_route.dart';
 import 'detail_screen/loan_detail_screen.dart';
 
 class DebtScreen extends StatefulWidget {
@@ -359,18 +360,22 @@ class _DebtScreenState extends State<DebtScreen> with AutomaticKeepAliveClientMi
             if (filteredDebts.isEmpty)
               _noDataContainer(scaffoldBg, secondaryText)
             else
-              ...filteredDebts.map((loan) =>
-                  _buildLoanCard(loan, accent, primaryText, secondaryText)),
+              ...filteredDebts.map((loan) => _buildLoanCard(loan, accent, primaryText, secondaryText)),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: "debt_fab",
         onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddLoanScreen(isGiven: false)),
+          final result = await Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: const AddLoanScreen(isGiven: false),
+            ),
           );
-          if (result == true) fetchDebts();
+
+          if (result == true) {
+            fetchDebts();
+          }
         },
         backgroundColor: accent,
         child: const Icon(Icons.add, color: Colors.white),
@@ -596,10 +601,9 @@ class _DebtScreenState extends State<DebtScreen> with AutomaticKeepAliveClientMi
               color: Colors.grey,
             ),
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => LoanDetailScreen(loan: loan),
+              Navigator.of(context).push(
+                SlideFromRightRoute(
+                  page: LoanDetailScreen(loan: loan),
                 ),
               );
             },

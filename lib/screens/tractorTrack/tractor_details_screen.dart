@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../utils/slide_route.dart';
 import '../../widgets/NegativeBarChart.dart';
 import '../../widgets/barChart.dart';
 import '../../widgets/sectionTitle.dart';
@@ -86,9 +87,9 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> with Automa
         child: RefreshIndicator(
           color: Colors.green,
           strokeWidth: 2.5,
-          onRefresh: _loadTractors,   // 👈 Pull-to-refresh added
+          onRefresh: _loadTractors,
           child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(), // 👈 Required to pull
+            physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.all(16),
@@ -158,9 +159,10 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> with Automa
 
 
   void _navigateToAddTractor(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddTractorPage()),
+    Navigator.of(context).push(
+      SlideFromRightRoute(
+        page: const AddTractorPage(),
+      ),
     );
   }
 }
@@ -202,10 +204,11 @@ class _TractorListSection extends StatelessWidget {
     );
   }
 
-  void _navigateToTractorDetails(BuildContext context, Map<String, dynamic> tractor) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => TractorDetailPage(tractor: tractor)),
+  void _navigateToTractorDetails(BuildContext context, Map<String, dynamic> tractor,) {
+    Navigator.of(context).push(
+      SlideFromRightRoute(
+        page: TractorDetailPage(tractor: tractor),
+      ),
     );
   }
 }

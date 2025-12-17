@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/expense.dart';
 import '../../services/TractorService/tractor_service.dart';
 import '../../utils/formatIndianNumber.dart';
+import '../../utils/slide_route.dart';
 import '../../widgets/no_data_widget.dart';
 import '../../widgets/sectionTitle.dart';
 import 'add_entities/add_expense.dart';
@@ -721,9 +722,10 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
         backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AddExpensePage()),
+          Navigator.of(context).push(
+            SlideFromRightRoute(
+              page: const AddExpensePage(),
+            ),
           ).then((_) => _initMethods());
         },
       ),
