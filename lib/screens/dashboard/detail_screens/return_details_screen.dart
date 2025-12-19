@@ -1,28 +1,16 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../../models/return_model.dart';
 import '../../../services/return_service.dart';
+import '../../../theme/app_colors.dart';
+import '../../../utils/IndianCurrencyFormatter.dart';
+import '../widgets/shimmerBox.dart';
 
 class ReturnDetailsScreen extends StatefulWidget {
-  final ReturnsList crop; // cropName, totalReturns, totalProduction, cropId
-  final Color scaffoldBg;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color accent;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
+  final ReturnsList crop;
 
   const ReturnDetailsScreen({
     Key? key,
     required this.crop,
-    required this.scaffoldBg,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.accent,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
   }) : super(key: key);
 
   @override
@@ -40,17 +28,15 @@ class _ReturnDetailsScreenState extends State<ReturnDetailsScreen> {
   }
 
   Future<void> _fetchReturns() async {
-    setState(() => _isLoading = true);
     try {
       final fetched = await ReturnService().getReturnsByCropAndYear(
         cropId: widget.crop.cropId,
         year: DateTime.now().year,
       );
       setState(() => _returns = fetched);
-    } catch (e) {
-      print("Error fetching returns: $e");
+    } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to fetch returns.")),
+        const SnackBar(content: Text("Failed to fetch returns")),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -59,240 +45,283 @@ class _ReturnDetailsScreenState extends State<ReturnDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
+
     return Scaffold(
-      backgroundColor: widget.scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: colors.card,
         elevation: 0,
-        iconTheme: IconThemeData(color: widget.primaryText),
-        title: Text("Return Details", style: TextStyle(color: widget.primaryText)),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: colors.text),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          "Return Details",
+          style: TextStyle(
+            color: colors.text,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
       body: Column(
         children: [
-          // ❄ Frosted crop summary card
-          // ❄ Frosted crop summary card - elegant design
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    gradient: LinearGradient(
-                      colors: [
-                        widget.cardGradientStart.withOpacity(0.3),
-                        widget.cardGradientEnd.withOpacity(0.15),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(color: widget.cardBorder.withOpacity(0.5), width: 1),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Crop Name
-                      Text(
-                        widget.crop.cropName,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: widget.primaryText,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Divider
-                      Divider(color: widget.secondaryText.withOpacity(0.3), thickness: 1),
-                      const SizedBox(height: 20),
-                      // Quantity and Returns
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Quantity
-                          Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: widget.cardGradientStart.withOpacity(0.2),
-                                ),
-                                child: const Icon(Icons.agriculture, size: 28, color: Colors.orangeAccent),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Quantity",
-                                style: TextStyle(fontSize: 14, color: widget.secondaryText),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "${widget.crop.totalProduction}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: widget.primaryText,
-                                ),
-                              ),
-                            ],
-                          ),
-                          // Returns
-                          Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: widget.cardGradientEnd.withOpacity(0.2),
-                                ),
-                                child: const Icon(Icons.attach_money, size: 28, color: Colors.green),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Returns",
-                                style: TextStyle(fontSize: 14, color: widget.secondaryText),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "₹${widget.crop.totalReturns}",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: widget.accent,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-
-          // ❄ Returns List
+          _summaryCard(colors),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _shimmerList(context)
                 : _returns.isEmpty
                 ? Center(
               child: Text(
                 "No return records available",
-                style: TextStyle(
-                    color: widget.secondaryText, fontSize: 16),
+                style: TextStyle(color: colors.secondaryText),
               ),
             )
-                : ListView(
-              padding: const EdgeInsets.all(16),
-              children: groupByMonth(_returns).entries.map((entry) {
-                final month = entry.key;
-                final returnsInMonth = entry.value;
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Month header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(
-                        month,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: widget.primaryText,
-                        ),
-                      ),
-                    ),
-
-                    // Cards for this month
-                    ...returnsInMonth.map((ret) => ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(vertical: 6),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                widget.cardGradientStart.withOpacity(0.2),
-                                widget.cardGradientEnd.withOpacity(0.1),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: widget.cardBorder.withOpacity(0.5)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Line 1: Date | Quantity | Amount
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    "${ret.date.year}-${ret.date.month.toString().padLeft(2, '0')}-${ret.date.day.toString().padLeft(2, '0')}",
-                                    style: TextStyle(color: widget.secondaryText, fontSize: 14),
-                                  ),
-                                  Text(
-                                    "${ret.quantity} units",
-                                    style: TextStyle(color: widget.accent, fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    "₹${ret.amount}",
-                                    style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-
-                              // Line 2: Description
-                              if (ret.description.isNotEmpty)
-                                Text(
-                                  ret.description,
-                                  style: TextStyle(
-                                    color: widget.primaryText,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    )),
-                  ],
-                );
-              }).toList(),
-            ),
+                : _returnsList(colors),
           ),
         ],
       ),
     );
   }
-  Map<String, List<ReturnDetailModel>> groupByMonth(List<ReturnDetailModel> returns) {
+
+  // ---------------- SUMMARY ----------------
+
+  Widget _summaryCard(AppColors colors) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [
+            colors.cardGradientStart.withOpacity(0.25),
+            colors.cardGradientEnd.withOpacity(0.15),
+          ],
+        ),
+        border: Border.all(color: colors.border.withOpacity(0.4)),
+      ),
+      child: Column(
+        children: [
+          Text(
+            widget.crop.cropName,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: colors.text,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _summaryItem(
+                icon: Icons.agriculture,
+                label: "Quantity",
+                value: widget.crop.totalProduction.toString(),
+                colors: colors,
+              ),
+              _summaryItem(
+                icon: Icons.currency_rupee,
+                label: "Returns",
+                value: IndianCurrencyFormatter.format(
+                  widget.crop.totalReturns.toString(),
+                ),
+                colors: colors,
+                highlight: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required AppColors colors,
+    bool highlight = false,
+  }) {
+    return Column(
+      children: [
+        Icon(icon, color: colors.accent),
+        const SizedBox(height: 6),
+        Text(label, style: TextStyle(color: colors.secondaryText)),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: highlight ? colors.accent : colors.text,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _returnsList(AppColors colors) {
+    final grouped = groupByMonth(_returns);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      children: grouped.entries.map((entry) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                entry.key,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: colors.text,
+                ),
+              ),
+            ),
+
+            ...entry.value.map(
+                  (ret) => _returnRow(ret, colors),
+            ),
+
+            // ✅ Monthly footer
+            _monthFooter(entry.value, colors),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+
+  Widget _returnRow(ReturnDetailModel ret, AppColors colors) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.card.withOpacity(0.7),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.border.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "${ret.date.day}-${ret.date.month}-${ret.date.year}",
+                style: TextStyle(color: colors.secondaryText, fontSize: 13),
+              ),
+              Text(
+                "${ret.quantity} units",
+                style: TextStyle(
+                  color: colors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              Text(
+                "₹${IndianCurrencyFormatter.format(ret.amount.toString())}",
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          if (ret.description.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              ret.description,
+              style: TextStyle(
+                color: colors.text,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _monthFooter(
+      List<ReturnDetailModel> returns,
+      AppColors colors,
+      ) {
+    final totalAmount = _monthTotalAmount(returns);
+    final totalQty = _monthTotalQuantity(returns);
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8, bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: colors.card.withOpacity(0.9),
+        border: Border.all(color: colors.border.withOpacity(0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Quantity
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Total Quantity",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colors.secondaryText,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                totalQty.toStringAsFixed(2),
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: colors.text,
+                ),
+              ),
+            ],
+          ),
+
+          // Amount
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                "Total Returns",
+                style: TextStyle(
+                  fontSize: 12,
+                  color: colors.secondaryText,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                "₹${IndianCurrencyFormatter.format(totalAmount.toString())}",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: colors.accent,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _monthTotalAmount(List<ReturnDetailModel> list) {
+    return list.fold(0, (sum, e) => sum + e.amount);
+  }
+
+  double _monthTotalQuantity(List<ReturnDetailModel> list) {
+    return list.fold(0, (sum, e) => sum + e.quantity);
+  }
+
+
+  Map<String, List<ReturnDetailModel>> groupByMonth(
+      List<ReturnDetailModel> returns) {
     final Map<String, List<ReturnDetailModel>> grouped = {};
     for (var ret in returns) {
       final key = "${_monthName(ret.date.month)} ${ret.date.year}";
@@ -309,28 +338,52 @@ class _ReturnDetailsScreenState extends State<ReturnDetailsScreen> {
     return months[month - 1];
   }
 
-  Widget _infoChip({required IconData icon, required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-        ],
+  Widget _monthlyShimmer(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Month header
+        shimmerBox(
+          context: context,
+          height: 18,
+          width: 140,
+          margin: const EdgeInsets.symmetric(vertical: 12),
+        ),
+
+        // Return cards
+        shimmerBox(
+          context: context,
+          height: 80,
+          margin: const EdgeInsets.only(bottom: 8),
+        ),
+        shimmerBox(
+          context: context,
+          height: 80,
+          margin: const EdgeInsets.only(bottom: 8),
+        ),
+        shimmerBox(
+          context: context,
+          height: 80,
+        ),
+
+        // Monthly footer
+        shimmerBox(
+          context: context,
+          height: 56,
+          margin: const EdgeInsets.only(top: 10, bottom: 20),
+        ),
+      ],
+    );
+  }
+
+  Widget _shimmerList(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: List.generate(
+        3, // show 3 months shimmer
+            (_) => _monthlyShimmer(context),
       ),
     );
   }
+
 }

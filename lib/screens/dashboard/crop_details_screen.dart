@@ -13,25 +13,11 @@
 
   class CropDetailScreen extends StatefulWidget {
     final Crop crop;
-    final Color accent;
-    final Color primaryText;
-    final Color secondaryText;
-    final Color scaffoldBg;
-    final Color cardGradientStart;
-    final Color cardGradientEnd;
-    final Color cardBorder;
     final VoidCallback? onUpdate;
 
     const CropDetailScreen({
       Key? key,
       required this.crop,
-      required this.accent,
-      required this.primaryText,
-      required this.secondaryText,
-      required this.scaffoldBg,
-      required this.cardGradientStart,
-      required this.cardGradientEnd,
-      required this.cardBorder,
       this.onUpdate,
     }) : super(key: key);
 
@@ -116,17 +102,16 @@
       final theme = Theme.of(context);
       final isDark = theme.brightness != Brightness.dark;
       final colors = AppColors.fromTheme(isDark);
-
       return Scaffold(
-        backgroundColor: widget.scaffoldBg,
+        backgroundColor: colors.card,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          iconTheme: IconThemeData(color: widget.primaryText),
+          iconTheme: IconThemeData(color: colors.primaryText),
           title: Text(
             crop.name,
             style: TextStyle(
-              color: widget.primaryText,
+              color: colors.primaryText,
               fontWeight: FontWeight.bold,
               fontSize: 18,
             ),
@@ -137,14 +122,13 @@
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🌱 Crop Info Section
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: widget.cardBorder),
+                  border: Border.all(color: colors.border),
                   gradient: LinearGradient(
-                    colors: [widget.cardGradientStart, widget.cardGradientEnd],
+                    colors: [colors.cardGradientStart, colors.cardGradientEnd],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -159,16 +143,17 @@
                               icon: Icons.agriculture,
                               label: "Crop",
                               value: crop.name,
-                              color: widget.primaryText,
+                              color: colors.primaryText,
+                              colors: colors
                             ),
                           ),
                           Expanded(
                             child: _buildInfoTile(
                               icon: Icons.date_range,
                               label: "Planted",
-                              value:
-                              "${crop.plantedDate?.year}-${crop.plantedDate?.month.toString().padLeft(2, '0')}-${crop.plantedDate?.day.toString().padLeft(2, '0')}",
-                              color: widget.primaryText,
+                              value: "${crop.plantedDate?.year}-${crop.plantedDate?.month.toString().padLeft(2, '0')}-${crop.plantedDate?.day.toString().padLeft(2, '0')}",
+                              color: colors.primaryText,
+                              colors: colors
                             ),
                           ),
                         ],
@@ -183,7 +168,8 @@
                               icon: Icons.square_foot,
                               label: "Area",
                               value: crop.area.toStringAsFixed(1),
-                              color: widget.accent,
+                              color: colors.accent,
+                              colors: colors,
                               onTap: () => _showUpdateDialog(isArea: true),
                             ),
                           ),
@@ -192,7 +178,8 @@
                               icon: Icons.inventory_2,
                               label: "Quantity",
                               value: crop.value?.toStringAsFixed(0) ?? "0",
-                              color: widget.accent,
+                              color: colors.accent,
+                              colors: colors,
                               onTap: () => _showUpdateDialog(isArea: false),
                             ),
                           ),
@@ -209,6 +196,7 @@
                               label: "Investment",
                               value: "₹${crop.totalInvested?.toStringAsFixed(0) ?? '0'}",
                               color: Colors.redAccent,
+                              colors: colors
                             ),
                           ),
                           Expanded(
@@ -217,6 +205,7 @@
                               label: "Returns",
                               value: "₹${crop.totalReturns?.toStringAsFixed(0) ?? '0'}",
                               color: Colors.green,
+                              colors: colors
                             ),
                           ),
                         ],
@@ -233,10 +222,10 @@
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+                  color: colors.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: colors.border),
                 ),
-                child: SizedBox(height: 220, child: _buildPieChart()),
+                child: SizedBox(height: 220, child: _buildPieChart(colors: colors)),
               ),
 
               const SizedBox(height: 32),
@@ -282,9 +271,9 @@
               ),
               const SizedBox(height: 16),
               if (selectedTab == CropTab.investments)
-                _buildInvestmentList()
+                _buildInvestmentList(colors:colors)
               else
-                _buildReturnsList(),
+                _buildReturnsList(colors: colors),
             ],
           ),
         ),
@@ -292,13 +281,13 @@
 
     }
 
-    Widget _buildPieChart() {
+    Widget _buildPieChart({required AppColors colors}) {
       final invested = (crop.totalInvested ?? 0).toDouble();
       final returns = (crop.totalReturns ?? 0).toDouble();
 
       if (invested + returns == 0) {
         return Center(
-            child: Text("No data", style: TextStyle(color: widget.secondaryText)));
+            child: Text("No data", style: TextStyle(color: colors.secondaryText)));
       }
 
       return PieChart(
@@ -332,62 +321,76 @@
       required String label,
       required String value,
       required Color color,
+      required AppColors colors,
       VoidCallback? onTap,
     }) {
-      return GestureDetector(
-        onTap: onTap,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 6),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: widget.cardGradientStart.withOpacity(0.1),
-            border: Border.all(color: widget.cardBorder.withOpacity(0.5)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 18, color: color),
-                  const SizedBox(width: 6),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: widget.secondaryText,
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: colors.cardGradientStart.withOpacity(0.1),
+              border: Border.all(
+                color: colors.border.withOpacity(0.5),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon, size: 18, color: color),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: colors.secondaryText,
+                        ),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
-    Widget _buildInvestmentList() {
+    Widget _buildInvestmentList({required AppColors colors}) {
       if (isLoading) return const Center(child: CircularProgressIndicator());
       if (investments.isEmpty) {
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Text("No investments found",
-              style: TextStyle(color: widget.secondaryText)),
+              style: TextStyle(color: colors.secondaryText)),
         );
       }
 
       final grouped = groupByMonth<Investment>(
         investments,
-            (inv) => inv.date, // assuming `date` is String
+            (inv) => inv.date,
       );
 
       return Column(
@@ -406,7 +409,7 @@
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: widget.primaryText,
+                    color: colors.primaryText,
                   ),
                 ),
               ),
@@ -414,8 +417,8 @@
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-                  color: widget.cardGradientStart.withOpacity(0.08),
+                  border: Border.all(color: colors.border.withOpacity(0.3)),
+                  color: colors.cardGradientStart.withOpacity(0.08),
                 ),
                 child: ListTile(
                   leading: Icon(Icons.money_off,
@@ -423,13 +426,13 @@
                   title: Text(
                     inv.description ?? "No description",
                     style: TextStyle(
-                        color: widget.primaryText,
+                        color: colors.primaryText,
                         fontWeight: FontWeight.bold),
                   ),
                   subtitle: Text(
                   "Date: ${inv.date?.toLocal().toString().split(' ').first}",
                   style: TextStyle(
-                        color: widget.secondaryText, fontSize: 12),
+                        color: colors.secondaryText, fontSize: 12),
                   ),
                   trailing: Text(
                     "₹${(inv.amount ?? 0).toString()}",
@@ -444,19 +447,19 @@
       );
     }
 
-    Widget _buildReturnsList() {
+    Widget _buildReturnsList({required AppColors colors}) {
       if (isLoading) return const Center(child: CircularProgressIndicator());
       if (investments.isEmpty) {
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Text("No investments found",
-              style: TextStyle(color: widget.secondaryText)),
+              style: TextStyle(color: colors.secondaryText)),
         );
       }
 
       final grouped = groupByMonth<ReturnDetailModel>(
         returnsData,
-            (inv) => inv.date, // assuming `date` is String
+            (inv) => inv.date,
       );
 
       return Column(
@@ -475,7 +478,7 @@
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: widget.primaryText,
+                    color: colors.primaryText,
                   ),
                 ),
               ),
@@ -483,21 +486,21 @@
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
-                  color: widget.cardGradientStart.withOpacity(0.08),
+                  border: Border.all(color: colors.border.withOpacity(0.3)),
+                  color: colors.cardGradientStart.withOpacity(0.08),
                 ),
                 child: ListTile(
                   leading: Icon(Icons.trending_up, color: Colors.green.withOpacity(0.8)),
                   title: Text(
                     inv.description ?? "No description",
                     style: TextStyle(
-                      color: widget.primaryText,
+                      color: colors.primaryText,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   subtitle: Text(
                     "${inv.date?.toLocal().toString().split(' ').first}    ⚖️ Quantity: ${inv.quantity ?? 0}",
-                    style: TextStyle(color: widget.secondaryText, fontSize: 12),
+                    style: TextStyle(color: colors.secondaryText, fontSize: 12),
                   ),
                   trailing: Text(
                     "₹${inv.amount ?? 0}",

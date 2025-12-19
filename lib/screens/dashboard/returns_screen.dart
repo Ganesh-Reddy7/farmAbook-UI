@@ -322,15 +322,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
         onPressed: () async {
           final result = await Navigator.of(context).push(
             SlideFromRightRoute(
-              page: AddReturnScreen(
-                scaffoldBg: widget.scaffoldBg,
-                primaryText: widget.primaryText,
-                secondaryText: widget.secondaryText,
-                accent: widget.accent,
-                cardGradientStart: widget.cardGradientStart,
-                cardGradientEnd: widget.cardGradientEnd,
-                cardBorder: widget.cardBorder,
-              ),
+              page: AddReturnScreen(),
             ),
           );
           if (result == true) {
@@ -354,13 +346,6 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
           SlideFromRightRoute(
             page: ReturnDetailsScreen(
               crop: ret,
-              accent: widget.accent,
-              primaryText: widget.primaryText,
-              secondaryText: widget.secondaryText,
-              scaffoldBg: widget.scaffoldBg,
-              cardGradientStart: widget.cardGradientStart,
-              cardGradientEnd: widget.cardGradientEnd,
-              cardBorder: widget.cardBorder,
             ),
           ),
         );

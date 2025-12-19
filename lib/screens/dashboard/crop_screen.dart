@@ -277,15 +277,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         onPressed: () async {
           final result = await Navigator.of(context).push(
             SlideFromRightRoute(
-              page: AddCropScreen(
-                scaffoldBg: widget.scaffoldBg,
-                primaryText: widget.primaryText,
-                secondaryText: widget.secondaryText,
-                accent: widget.accent,
-                cardGradientStart: widget.cardGradientStart,
-                cardGradientEnd: widget.cardGradientEnd,
-                cardBorder: widget.cardBorder,
-              ),
+              page: AddCropScreen(),
             ),
           );
           if (result == true) {
@@ -309,13 +301,6 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
           SlideFromRightRoute(
             page: CropDetailScreen(
               crop: crop,
-              accent: widget.accent,
-              primaryText: widget.primaryText,
-              secondaryText: widget.secondaryText,
-              scaffoldBg: widget.scaffoldBg,
-              cardGradientStart: widget.cardGradientStart,
-              cardGradientEnd: widget.cardGradientEnd,
-              cardBorder: widget.cardBorder,
               onUpdate: _refreshCurrentYearCrops,
             ),
           ),

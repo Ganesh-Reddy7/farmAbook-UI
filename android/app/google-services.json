@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "765764569240",
+    "project_id": "farmabook-5b4c2",
+    "storage_bucket": "farmabook-5b4c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:765764569240:android:316bad23e95b62d23f68ed",
+        "android_client_info": {
+          "package_name": "com.company.farmAbook"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeUEFdg4GoAWTOtKR-I2mq2WFcLA7bRqg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:765764569240:android:c168839988c9b9e73f68ed",
+        "android_client_info": {
+          "package_name": "com.farmabook.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeUEFdg4GoAWTOtKR-I2mq2WFcLA7bRqg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

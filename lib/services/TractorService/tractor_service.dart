@@ -141,8 +141,6 @@ class TractorService {
       Map<String, dynamic> expenseData) async {
     final auth = await _loadAuth();
     final url = Uri.parse('$baseUrl/tractor-expenses');
-
-    // Build final request body
     final body = {
       "tractorId": expenseData["tractorId"],
       "expenseDate": expenseData["expenseDate"],
@@ -153,8 +151,6 @@ class TractorService {
       "farmerId": auth["farmerId"],
     };
 
-    log("Adding Tractor Expense => ${jsonEncode(body)}");
-
     try {
       final response = await http.post(
         url,
@@ -164,8 +160,7 @@ class TractorService {
         },
         body: jsonEncode(body),
       );
-      AppCacheManager.clearTractorCache(auth["farmerId"] as int);
-      log("Expense API Response: ${response.statusCode} → ${response.body}");
+      // AppCacheManager.clearTractorCache(auth["farmerId"] as int);
       return response;
     } catch (e) {
       throw Exception("Network error while adding expense: $e");

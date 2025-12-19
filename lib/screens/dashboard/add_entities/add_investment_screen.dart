@@ -1,44 +1,30 @@
-import 'dart:ui';
-import 'package:farmabook/models/crop.dart';
 import 'package:flutter/material.dart';
+import 'package:farmabook/models/crop.dart';
 import '../../../services/investment_service.dart';
-import '../../../widgets/FrostedDropDown.dart';
+import '../../../theme/app_colors.dart';
+import '../../../utils/IndianCurrencyFormatter.dart';
 import '../../../widgets/FrostedInput.dart';
-
+import '../../../widgets/FrostedDropDown.dart';
+import '../../../widgets/commonDateSelector.dart';
 
 class AddInvestmentScreen extends StatefulWidget {
-  final Color scaffoldBg;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color accent;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
-
-  const AddInvestmentScreen({
-    Key? key,
-    required this.scaffoldBg,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.accent,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
-  }) : super(key: key);
+  const AddInvestmentScreen({Key? key}) : super(key: key);
 
   @override
   State<AddInvestmentScreen> createState() => _AddInvestmentScreenState();
 }
 
 class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
-  final TextEditingController _amountController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _amountCtrl = TextEditingController();
+  final TextEditingController _descCtrl = TextEditingController();
+  final TextEditingController _dateCtrl = TextEditingController();
+
+  DateTime? _selectedDate;
   cropDTO? _selectedCrop;
   List<cropDTO> _cropOptions = [];
-  DateTime? _selectedDate;
-  List<Worker> _workers = [];
+
+  final List<Worker> _workers = [];
   bool _isSaving = false;
-  bool _loadingCrops = false;
 
   @override
   void initState() {
@@ -46,56 +32,65 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
     _fetchCrops();
   }
 
-  Future<void> _fetchCrops() async {
-    try {
-      _cropOptions = await InvestmentService().getCrops(DateTime.now().year);
-      setState(() {
-        _loadingCrops = false;
-      });
-    } catch (e) {
-      setState(() => _loadingCrops = false);
-      print("Failed to fetch crops: $e");
-    }
-  }
-
   @override
   void dispose() {
-    _amountController.dispose();
-    _descriptionController.dispose();
-    for (var w in _workers) w.dispose();
+    _amountCtrl.dispose();
+    _descCtrl.dispose();
+    _dateCtrl.dispose();
+    for (final w in _workers) {
+      w.dispose();
+    }
     super.dispose();
   }
 
-  double get totalWorkerWage {
-    double total = 0;
-    for (var w in _workers) {
-      total += double.tryParse(w.wageController.text) ?? 0;
-    }
-    return total;
+  Future<void> _fetchCrops() async {
+    _cropOptions = await InvestmentService().getCrops(DateTime.now().year);
+    setState(() {});
   }
+
+  // ---------------- CALCULATIONS ----------------
+
+  double get totalWorkerWage {
+    return _workers.fold<double>(
+      0,
+          (sum, w) {
+        final raw = w.wageController.text.replaceAll(',', '');
+        final value = double.tryParse(raw) ?? 0;
+        return sum + value;
+      },
+    );
+  }
+
+
+  // ---------------- UI ----------------
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
+
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: widget.scaffoldBg,
+        backgroundColor: colors.card,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          iconTheme: IconThemeData(color: widget.primaryText),
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: colors.text),
+            onPressed: () => Navigator.pop(context),
+          ),
           title: Text(
             "Add Investment",
             style: TextStyle(
-              color: widget.primaryText,
+              color: colors.text,
               fontWeight: FontWeight.bold,
-              fontSize: 18,
             ),
           ),
           bottom: TabBar(
-            labelColor: widget.accent,
-            unselectedLabelColor: widget.secondaryText,
-            indicatorColor: widget.accent,
+            labelColor: colors.accent,
+            unselectedLabelColor: colors.secondaryText,
+            indicatorColor: colors.accent,
             tabs: const [
               Tab(text: "Single Investment"),
               Tab(text: "With Workers"),
@@ -104,337 +99,324 @@ class _AddInvestmentScreenState extends State<AddInvestmentScreen> {
         ),
         body: TabBarView(
           children: [
-            // Single Investment
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildDateField(),
-                  const SizedBox(height: 12),
-                  FrostedInput(
-                    label: "Amount (₹)",
-                    icon: Icons.currency_rupee,
-                    controller: _amountController,
-                    keyboardType: TextInputType.number,
-                    compact: true,
-                  ),
-                  const SizedBox(height: 12),
-                  FrostedDropdown(
-                    label: "Select Crop",
-                    icon: Icons.agriculture,
-                    options: _cropOptions.map((c) => c.cropName).toList(),
-                    selectedValue: _selectedCrop?.cropName,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCrop = _cropOptions.firstWhere((c) => c.cropName == value);;
-                      });
-                    },
-                    compact: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFrostedInput("Description", Icons.note, _descriptionController, maxLines: 2, compact: true),
-                  const SizedBox(height: 24),
-                  _buildSaveButton(isSingle: true),
-                ],
-              ),
-            ),
-
-            // Investment with Workers
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildDateField(),
-                  const SizedBox(height: 12),
-                  FrostedDropdown(
-                    label: "Select Crop",
-                    icon: Icons.agriculture,
-                    options: _cropOptions.map((c) => c.cropName).toList(),
-                    selectedValue: _selectedCrop?.cropName,
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedCrop = _cropOptions.firstWhere((c) => c.cropName == value);;
-                      });
-                    },
-                    compact: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFrostedInput("Description", Icons.note, _descriptionController, maxLines: 2, compact: true),
-                  const SizedBox(height: 12),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _workers.length,
-                    itemBuilder: (context, index) {
-                      final worker = _workers[index];
-                      return ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 6),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              gradient: LinearGradient(
-                                colors: [
-                                  widget.cardGradientStart.withOpacity(0.3),
-                                  widget.cardGradientEnd.withOpacity(0.2),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              border: Border.all(color: widget.cardBorder, width: 1),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: _buildFrostedTextField(
-                                        controller: worker.nameController,
-                                        label: "Worker Name",
-                                        icon: Icons.person,
-                                        compact: true,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                      onPressed: () => setState(() => _workers.removeAt(index)),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: _buildFrostedTextField(
-                                        controller: worker.wageController,
-                                        label: "Wage (₹)",
-                                        icon: Icons.currency_rupee,
-                                        keyboardType: TextInputType.number,
-                                        compact: true,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: _buildFrostedTextField(
-                                        controller: worker.roleController,
-                                        label: "Role",
-                                        icon: Icons.badge,
-                                        compact: true,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  )
-                  ,
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => setState(() => _workers.add(Worker())),
-                    icon: const Icon(Icons.add),
-                    label: const Text("Add Worker"),
-                  ),
-                  const SizedBox(height: 12),
-                    if (_workers.isNotEmpty)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        "Total Wage: ₹${totalWorkerWage.toStringAsFixed(2)}",
-                        style: TextStyle(color: widget.primaryText, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  _buildSaveButton(isSingle: false),
-                ],
-              ),
-            ),
+            _singleInvestmentTab(colors),
+            _workersInvestmentTab(colors),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDateField() {
+  // ---------------- SINGLE INVESTMENT ----------------
+
+  Widget _singleInvestmentTab(AppColors colors) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _dateField(),
+          const SizedBox(height: 12),
+
+          FrostedInput(
+            label: "Amount (₹)",
+            icon: Icons.currency_rupee,
+            controller: _amountCtrl,
+            keyboardType: TextInputType.number,
+            compact: true,
+            onChanged: _currencyFormatter(_amountCtrl),
+          ),
+
+          const SizedBox(height: 12),
+          _cropDropdown(),
+          const SizedBox(height: 12),
+
+          FrostedInput(
+            label: "Description",
+            icon: Icons.note,
+            controller: _descCtrl,
+            maxLines: 2,
+            compact: true,
+          ),
+
+          const SizedBox(height: 24),
+          _saveButton(colors),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- WITH WORKERS ----------------
+
+  Widget _workersInvestmentTab(AppColors colors) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _dateField(),
+          const SizedBox(height: 12),
+          _cropDropdown(),
+          const SizedBox(height: 12),
+
+          FrostedInput(
+            label: "Description",
+            icon: Icons.note,
+            controller: _descCtrl,
+            maxLines: 2,
+            compact: true,
+          ),
+
+          const SizedBox(height: 12),
+
+          ..._workers.map(_workerCard),
+
+          const SizedBox(height: 8),
+          ElevatedButton.icon(
+            onPressed: () => setState(
+                  () => _workers.add(Worker(onUpdate: () => setState(() {}))),
+            ),
+            icon: const Icon(Icons.add),
+            label: const Text("Add Worker"),
+          ),
+
+          if (_workers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  "Total Wage: ₹${IndianCurrencyFormatter.format(totalWorkerWage.toString())}",
+                  style: TextStyle(
+                    color: colors.text,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 24),
+          _saveButton(colors),
+        ],
+      ),
+    );
+  }
+
+  // ---------------- COMMON WIDGETS ----------------
+
+  Widget _dateField() {
     return FrostedInput(
       label: "Select Date",
       icon: Icons.calendar_today,
-      controller: TextEditingController(
-        text: _selectedDate != null
-            ? "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2,'0')}-${_selectedDate!.day.toString().padLeft(2,'0')}"
-            : "",
-      ),
+      controller: _dateCtrl,
       readOnly: true,
-      onTap: _pickDate,
       compact: true,
+      onTap: _pickDate,
     );
   }
 
-  Widget _buildFrostedInput(String label, IconData icon, TextEditingController controller,
-      {int maxLines = 1, bool readOnly = false, VoidCallback? onTap, bool compact = false}) {
-    final bool isDark = Theme.of(context).brightness != Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 8 : 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.03),
-            border: Border.all(color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.withOpacity(0.08)),
-          ),
-          child: TextField(
-            controller: controller,
-            readOnly: readOnly,
-            maxLines: maxLines,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: compact ? 13 : 15),
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: isDark ? Colors.white70 : Colors.black54),
-              labelText: label,
-              labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: compact ? 13 : 15),
-              border: InputBorder.none,
-            ),
-            onTap: onTap,
-          ),
+  Widget _cropDropdown() {
+    return FrostedDropdown(
+      label: "Select Crop",
+      icon: Icons.agriculture,
+      options: _cropOptions.map((c) => c.cropName).toList(),
+      selectedValue: _selectedCrop?.cropName,
+      compact: true,
+      onChanged: (v) => setState(
+            () => _selectedCrop =
+            _cropOptions.firstWhere((c) => c.cropName == v),
+      ),
+    );
+  }
+  Widget _workerCard(Worker worker) {
+    final isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.card.withOpacity(0.95),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: colors.divider.withOpacity(0.6),
         ),
+      ),
+      child: Column(
+        children: [
+          // ---------- NAME + DELETE ----------
+          Row(
+            children: [
+              Expanded(
+                child: FrostedInput(
+                  label: "Worker Name",
+                  icon: Icons.person,
+                  controller: worker.nameController,
+                  compact: true,
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.redAccent),
+                onPressed: () => setState(() => _workers.remove(worker)),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // ---------- WAGE + ROLE ----------
+          Row(
+            children: [
+              Expanded(
+                child: FrostedInput(
+                  label: "Wage (₹)",
+                  icon: Icons.currency_rupee,
+                  controller: worker.wageController,
+                  keyboardType: TextInputType.number,
+                  compact: true,
+                  onChanged: _currencyFormatter(
+                    worker.wageController,
+                    onDone: () => setState(() {}),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FrostedInput(
+                  label: "Role",
+                  icon: Icons.badge,
+                  controller: worker.roleController,
+                  compact: true,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildFrostedTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    TextInputType keyboardType = TextInputType.text,
-    bool compact = false,
-  }) {
-    final bool isDark = Theme.of(context).brightness != Brightness.dark;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 12, vertical: compact ? 8 : 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.03),
-            border: Border.all(color: isDark ? Colors.white.withOpacity(0.06) : Colors.grey.withOpacity(0.08)),
-          ),
-          child: TextField(
-            controller: controller,
-            keyboardType: keyboardType,
-            style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: compact ? 13 : 15),
-            decoration: InputDecoration(
-              prefixIcon: Icon(icon, color: isDark ? Colors.white70 : Colors.black54),
-              labelText: label,
-              labelStyle: TextStyle(color: isDark ? Colors.white70 : Colors.black54, fontSize: compact ? 13 : 15),
-              border: InputBorder.none,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildSaveButton({required bool isSingle}) {
+
+  Widget _saveButton(AppColors colors) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: widget.accent,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
         onPressed: _isSaving ? null : _saveInvestment,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colors.accent,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+        ),
         child: _isSaving
-            ? const SizedBox(
-          height: 18,
-          width: 18,
-          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-        )
+            ? const CircularProgressIndicator(color: Colors.white)
             : const Text("Save Investment"),
       ),
     );
   }
 
-  void _pickDate() async {
-    DateTime now = DateTime.now();
-    DateTime? picked = await showDatePicker(
+  // ---------------- LOGIC ----------------
+
+  Future<void> _pickDate() async {
+    final picked = await CommonDateSelector.show(
       context: context,
-      initialDate: _selectedDate ?? now,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(now.year + 5),
+      title: "Select Investment Date",
+      initialDate: _selectedDate ?? DateTime.now(),
+      minDate: DateTime(2000),
+      maxDate: DateTime.now(),
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+
+    if (picked != null) {
+      setState(() {
+        _selectedDate = picked;
+        _dateCtrl.text =
+        "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
   }
 
-  void _saveInvestment() async {
-    if (_selectedDate == null || _descriptionController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill date and description")),
-      );
+  ValueChanged<String> _currencyFormatter(
+      TextEditingController controller, {
+        VoidCallback? onDone,
+      }) {
+    return (value) {
+      final raw = value.replaceAll(',', '');
+      if (raw.isEmpty) return;
+
+      final number = double.tryParse(raw);
+      if (number == null) return;
+
+      final formatted = IndianCurrencyFormatter.format(raw);
+
+      if (formatted != value) {
+        controller.value = TextEditingValue(
+          text: formatted,
+          selection: TextSelection.collapsed(offset: formatted.length),
+        );
+        onDone?.call();
+      }
+    };
+  }
+
+
+  Future<void> _saveInvestment() async {
+    if (_selectedDate == null ||
+        _selectedCrop == null ||
+        _descCtrl.text.isEmpty) {
+      _showSnack("Please fill all required fields");
       return;
     }
 
-    if (_workers.isEmpty && _amountController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter amount or add workers")),
-      );
+    if (_workers.isEmpty && _amountCtrl.text.isEmpty) {
+      _showSnack("Enter amount or add workers");
       return;
     }
 
     setState(() => _isSaving = true);
+
     final service = InvestmentService();
-    bool success = false;
+    bool success;
 
     if (_workers.isEmpty) {
-      final amount = double.tryParse(_amountController.text) ?? 0;
-
       success = await service.saveInvestment(
-        amount: amount,
-        description: _descriptionController.text,
+        amount:
+        double.parse(_amountCtrl.text.replaceAll(',', '')),
+        description: _descCtrl.text,
         date: _selectedDate!,
         cropId: _selectedCrop!.cropId,
       );
     } else {
-      final workerData = _workers.map((w) => w.toMap()).toList();
       success = await service.saveInvestmentWithWorkers(
-        description: _descriptionController.text,
+        description: _descCtrl.text,
         date: _selectedDate!,
-        workers: workerData,
         cropId: _selectedCrop!.cropId,
+        workers: _workers.map((w) => w.toMap()).toList(),
       );
     }
 
     setState(() => _isSaving = false);
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text("Investment Saved!"), backgroundColor: widget.accent),
-      );
       Navigator.pop(context, true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save investment."), backgroundColor: Colors.redAccent),
-      );
+      _showSnack("Failed to save investment");
     }
   }
 
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(msg)));
+  }
 }
 
+// ---------------- WORKER MODEL ----------------
+
 class Worker {
-  TextEditingController nameController = TextEditingController();
-  TextEditingController wageController = TextEditingController();
-  TextEditingController roleController = TextEditingController();
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController wageController = TextEditingController();
+  final TextEditingController roleController = TextEditingController();
+
+  final VoidCallback onUpdate;
+
+  Worker({required this.onUpdate});
 
   void dispose() {
     nameController.dispose();
@@ -444,7 +426,11 @@ class Worker {
 
   Map<String, dynamic> toMap() => {
     "name": nameController.text,
-    "wage": wageController.text,
+    "wage": double.tryParse(
+      wageController.text.replaceAll(',', ''),
+    ) ??
+        0,
     "role": roleController.text,
   };
 }
+

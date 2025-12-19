@@ -206,13 +206,6 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           final result = await Navigator.of(context).push(
             SlideFromRightRoute(
               page: AddInvestmentScreen(
-                scaffoldBg: widget.scaffoldBg,
-                primaryText: widget.primaryText,
-                secondaryText: widget.secondaryText,
-                accent: widget.accent,
-                cardGradientStart: widget.cardGradientStart,
-                cardGradientEnd: widget.cardGradientEnd,
-                cardBorder: widget.cardBorder,
               ),
             ),
           );

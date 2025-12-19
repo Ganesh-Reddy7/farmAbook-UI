@@ -38,14 +38,12 @@ class _TractorScreenState extends ConsumerState<TractorScreen>
     final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
     final Color cardBorder = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
     final statsAsync = ref.watch(tractorStatsProvider(2025));
-    print("Provider executed: $statsAsync");
     return SafeArea(
       child: Container(
         color: scaffoldBg,
         child: Column(
           children: [
             const SizedBox(height: 8),
-            // -------- SUMMARY CARDS AREA --------
             statsAsync.when(
               loading: () => const SizedBox(
                 height: 70,

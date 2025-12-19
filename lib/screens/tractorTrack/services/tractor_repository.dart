@@ -50,11 +50,11 @@ class TractorRepository {
     final auth = await _loadAuth();
     final int farmerId = int.parse(auth["farmerId"]!);
     final String token = auth["token"]!;
-    final String cacheKey = "tractor_${farmerId}_$year";
-    if (cache.containsKey(cacheKey)) {
-      final cached = cache.get(cacheKey);
-      return TractorYearlyStats.fromJson(Map<String, dynamic>.from(cached));
-    }
+    // final String cacheKey = "tractor_${farmerId}_$year";
+    // if (cache.containsKey(cacheKey)) {
+    //   final cached = cache.get(cacheKey);
+    //   return TractorYearlyStats.fromJson(Map<String, dynamic>.from(cached));
+    // }
     final url = Uri.parse("$baseUrl/tractor/yearly-stats?farmerId=$farmerId&startYear=$year&endYear=$year",);
     try {
       final res = await http.get(
@@ -70,7 +70,7 @@ class TractorRepository {
       final decoded = jsonDecode(res.body);
       final data = decoded["yearlyData"][0];
       final stats = TractorYearlyStats.fromJson(data);
-      cache.put(cacheKey, data);
+      // cache.put(cacheKey, data);
       return stats;
     } catch (e) {
       throw Exception("❌ Tractor stats load error: $e");

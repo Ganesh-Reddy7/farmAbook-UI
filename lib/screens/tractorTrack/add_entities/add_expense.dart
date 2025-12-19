@@ -82,7 +82,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
           ? null
           : _descriptionController.text.trim();
 
-      // Build API payload
       final payload = {
         "id": 0,
         "tractorId": tractorId,
@@ -91,19 +90,14 @@ class _AddExpensePageState extends State<AddExpensePage> {
         "litres": litres,
         "cost": amount,
         "notes": notes,
-        // farmerId is added in service automatically
       };
-
-      debugPrint("📤 Sending Expense Payload → $payload");
 
       try {
         final response = await tractorService.addTractorExpense(payload);
-        debugPrint("📥 API Response: ${response.statusCode} → ${response.body}");
-
         if (response.statusCode == 200 || response.statusCode == 201) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("✅ Expense added successfully!"),
+              content: Text("Expense added successfully!"),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
             ),
@@ -113,7 +107,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("❌ Failed: ${response.body}"),
+              content: Text("Failed: ${response.body}"),
               backgroundColor: Colors.red,
             ),
           );
@@ -121,7 +115,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("⚠ Error: $e"),
+            content: Text("Error: $e"),
             backgroundColor: Colors.orange,
           ),
         );
