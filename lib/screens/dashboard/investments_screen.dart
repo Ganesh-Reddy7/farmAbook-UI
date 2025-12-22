@@ -14,23 +14,9 @@ import 'add_entities/add_investment_screen.dart' hide Worker;
 import 'worker_list_screen.dart';
 
 class InvestmentsScreen extends StatefulWidget {
-  final Color accent;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color scaffoldBg;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
   final VoidCallback? onDataChanged;
 
   const InvestmentsScreen({
-    required this.accent,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.scaffoldBg,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
     this.onDataChanged,
     Key? key,
   }) : super(key: key);
@@ -102,17 +88,17 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
     );
     final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
     return Scaffold(
-      backgroundColor: widget.scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: widget.primaryText),
+        iconTheme: IconThemeData(color: colors.primaryText),
         title: SectionTitle(title: "Investments", isDark: isDark , fontSize:16),
         actions: [
           IconButton(
             icon: Icon(
               _isLineChart ? Icons.bar_chart : Icons.show_chart,
-              color: widget.accent,
+              color: colors.accent,
             ),
             onPressed: () => setState(() => _isLineChart = !_isLineChart),
           )
@@ -159,7 +145,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
                         items: lastFiveYears,
                         displayText: (year) => year.toString(),
                         backgroundColor: colors.card,
-                        textColor: widget.primaryText,
+                        textColor: colors.primaryText,
                         selected: _selectedYear,
                       );
                       if (selectedYear != null) {
@@ -173,26 +159,26 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
                           _selectedYear.toString(),
                           style: TextStyle(
                             fontSize: 16,
-                            color: widget.primaryText,
+                            color: colors.primaryText,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Icon(Icons.arrow_drop_down, color: widget.primaryText),
+                        Icon(Icons.arrow_drop_down, color: colors.primaryText),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              _totalAndPendingCard(totalInvestment, totalRemaining),
+              _totalAndPendingCard(totalInvestment, totalRemaining , colors),
               const SizedBox(height: 20),
-              _investmentPieChart(currentYearInvestments, totalInvestment),
+              _investmentPieChart(currentYearInvestments, totalInvestment , colors),
               const SizedBox(height: 20),
               SectionTitle(title: "Investments in $_selectedYear:", isDark: isDark , fontSize:16),
               const SizedBox(height: 20),
               currentYearInvestments.isEmpty
-                  ? _noInvestmentsCard()
-                  : Column(children: currentYearInvestments.map((inv) => _investmentCard(inv)).toList(),
+                  ? _noInvestmentsCard(colors)
+                  : Column(children: currentYearInvestments.map((inv) => _investmentCard(inv , colors)).toList(),
               ),
             ],
           ),
@@ -200,7 +186,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
       ),
       floatingActionButton: FloatingActionButton(
         mini: true,
-        backgroundColor: widget.accent,
+        backgroundColor: colors.accent,
         heroTag: "add-investment",
         onPressed: () async {
           final result = await Navigator.of(context).push(
@@ -218,7 +204,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
     );
   }
 
-  Widget _totalAndPendingCard(double total, double pending) {
+  Widget _totalAndPendingCard(double total, double pending , AppColors colors) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -226,30 +212,34 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           colors: [
-            widget.cardGradientStart.withOpacity(0.1),
-            widget.cardGradientEnd.withOpacity(0.05),
+            colors.cardGradientStart.withOpacity(0.1),
+            colors.cardGradientEnd.withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+        border: Border.all(color: colors.border.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _totalPendingColumn(
               icon: Icons.account_balance_wallet,
-              iconBg: widget.accent.withOpacity(0.2),
+              iconBg: colors.accent.withOpacity(0.2),
               amount: total,
               title: "Total Investment",
-              amountColor: widget.accent),
-          Container(width: 1, height: 60, color: widget.cardBorder.withOpacity(0.3)),
+              amountColor: colors.accent,
+              colors: colors
+          ),
+          Container(width: 1, height: 60, color: colors.border.withOpacity(0.3)),
           _totalPendingColumn(
               icon: Icons.pending_actions,
               iconBg: Colors.orange.withOpacity(0.2),
               amount: pending,
               title: "Pending Amount",
-              amountColor: Colors.orange.shade700),
+              amountColor: Colors.orange.shade700,
+              colors: colors
+          ),
         ],
       ),
     );
@@ -260,7 +250,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
         required Color iconBg,
         required double amount,
         required String title,
-        required Color amountColor}) {
+        required Color amountColor,
+        required AppColors colors
+      }) {
     return Column(
       children: [
         Container(
@@ -269,7 +261,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           child: Icon(icon, color: amountColor, size: 28),
         ),
         const SizedBox(height: 8),
-        Text(title, style: TextStyle(fontSize: 14, color: widget.secondaryText)),
+        Text(title, style: TextStyle(fontSize: 14, color: colors.secondaryText)),
         const SizedBox(height: 4),
         Text(
           "₹${amount.toStringAsFixed(0)}",
@@ -279,14 +271,14 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
     );
   }
 
-  Widget _investmentPieChart(List<Investment> investments, double total) {
+  Widget _investmentPieChart(List<Investment> investments, double total , AppColors colors) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: widget.cardGradientStart.withOpacity(0.05),
-        border: Border.all(color: widget.cardBorder),
+        color: colors.cardGradientStart.withOpacity(0.05),
+        border: Border.all(color: colors.border),
       ),
       child: SizedBox(
         height: 220,
@@ -295,7 +287,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           child: Text(
             "No pie chart data available",
             style: TextStyle(
-                color: widget.secondaryText,
+                color: colors.secondaryText,
                 fontSize: 16,
                 fontWeight: FontWeight.bold),
           ),
@@ -325,7 +317,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
     );
   }
 
-  Widget _noInvestmentsCard() {
+  Widget _noInvestmentsCard(AppColors colors) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
@@ -333,35 +325,35 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            widget.cardGradientStart.withOpacity(0.1),
-            widget.cardGradientEnd.withOpacity(0.05),
+            colors.cardGradientStart.withOpacity(0.1),
+            colors.cardGradientEnd.withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+        border: Border.all(color: colors.border.withOpacity(0.3)),
       ),
       child: Column(
         children: [
-          Icon(Icons.info_outline, size: 40, color: widget.accent),
+          Icon(Icons.info_outline, size: 40, color: colors.accent),
           const SizedBox(height: 12),
           Text(
             "No investments available",
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: widget.secondaryText),
+                fontSize: 16, fontWeight: FontWeight.bold, color: colors.secondaryText),
           ),
           const SizedBox(height: 6),
           Text(
             "Please add investments to view details.",
-            style: TextStyle(color: widget.secondaryText),
+            style: TextStyle(color: colors.secondaryText),
           ),
         ],
       ),
     );
   }
 
-  Widget _investmentCard(Investment inv) {
+  Widget _investmentCard(Investment inv , AppColors colors) {
     final bool hasWorkers = inv.workers != null && inv.workers!.isNotEmpty;
 
     final double screenW = MediaQuery.of(context).size.width;
@@ -383,13 +375,6 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
             SlideFromRightRoute(
               page: WorkerListScreen(
                 investment: inv,
-                accent: widget.accent,
-                primaryText: widget.primaryText,
-                secondaryText: widget.secondaryText,
-                scaffoldBg: widget.scaffoldBg,
-                cardGradientStart: widget.cardGradientStart,
-                cardGradientEnd: widget.cardGradientEnd,
-                cardBorder: widget.cardBorder,
               ),
             ),
           );
@@ -400,9 +385,9 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: widget.cardGradientStart.withOpacity(0.07),
+            color: colors.cardGradientStart.withOpacity(0.07),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: widget.cardBorder.withOpacity(0.25)),
+            border: Border.all(color: colors.border.withOpacity(0.25)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -415,33 +400,30 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // LEFT ICON
               Container(
                 width: iconBox,
                 height: iconBox,
                 decoration: BoxDecoration(
-                  color: widget.accent.withOpacity(0.12),
+                  color: colors.accent.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   Icons.work_outline,
-                  color: widget.accent,
-                  size: iconBox * 0.55, // Responsive icon size
+                  color: colors.accent,
+                  size: iconBox * 0.55,
                 ),
               ),
 
               const SizedBox(width: 14),
 
-              // MIDDLE
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // TITLE
                     Text(
                       inv.description,
                       style: TextStyle(
-                        color: widget.primaryText,
+                        color: colors.primaryText,
                         fontSize: titleSize,
                         fontWeight: FontWeight.w700,
                       ),
@@ -449,18 +431,16 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
 
                     const SizedBox(height: 4),
 
-                    // DATE
                     Text(
                       "Date: ${inv.date.year}-${inv.date.month.toString().padLeft(2, '0')}-${inv.date.day.toString().padLeft(2, '0')}",
                       style: TextStyle(
-                        color: widget.secondaryText,
+                        color: colors.secondaryText,
                         fontSize: dateSize,
                       ),
                     ),
 
                     const SizedBox(height: 6),
 
-                    // STATUS
                     if (inv.remainingAmount != null)
                       Text(
                         inv.remainingAmount! > 0
@@ -480,7 +460,6 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
 
               const SizedBox(width: 10),
 
-              // RIGHT SIDE
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -490,7 +469,7 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
                     style: TextStyle(
                       fontSize: amountSize,
                       fontWeight: FontWeight.bold,
-                      color: widget.accent,
+                      color: colors.accent,
                     ),
                   ),
 
@@ -501,14 +480,14 @@ class _InvestmentsScreenState extends State<InvestmentsScreen> with AutomaticKee
                         Icon(
                           Icons.people,
                           size: 18,
-                          color: widget.accent,
+                          color: colors.accent,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           "${inv.workers!.length}",
                           style: TextStyle(
                             fontSize: 14,
-                            color: widget.accent,
+                            color: colors.accent,
                             fontWeight: FontWeight.bold,
                           ),
                         )

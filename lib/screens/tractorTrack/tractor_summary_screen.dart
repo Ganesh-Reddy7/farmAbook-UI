@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/TractorService/tractor_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/NegativeBarChart.dart';
 import '../../widgets/barChart.dart';
 import '../../widgets/sectionTitle.dart';
@@ -55,11 +56,8 @@ class _TractorSummaryScreenState extends State<TractorSummaryScreen> with Automa
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final textColor = Theme.of(context).brightness != Brightness.dark
-        ? Colors.white
-        : Colors.black87;
     final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final colors = AppColors.fromTheme(isDark);
 
     if (isLoading) {
       return Scaffold(
@@ -133,17 +131,4 @@ class _TractorSummaryScreenState extends State<TractorSummaryScreen> with Automa
       ),
     );
   }
-}
-
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-  final Color divider;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : Colors.white,
-        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87,
-        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }

@@ -1,29 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../models/investment.dart';
 import '../../services/worker_service.dart';
+import '../../theme/app_colors.dart';
 
 class WorkerListScreen extends StatefulWidget {
   final Investment investment;
-  final Color accent;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color scaffoldBg;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
-
   final VoidCallback? onPaymentUpdated;
 
   const WorkerListScreen({
     Key? key,
     required this.investment,
-    required this.accent,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.scaffoldBg,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
     this.onPaymentUpdated,
   }) : super(key: key);
 
@@ -168,7 +154,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
   // ---------------- UI ----------------
 
   // Shimmer loader
-  Widget _shimmer() {
+  Widget _shimmer(AppColors colors) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: 8,
@@ -176,14 +162,14 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
         margin: const EdgeInsets.symmetric(vertical: 8),
         height: 70,
         decoration: BoxDecoration(
-          color: widget.cardBorder.withOpacity(0.12),
+          color: colors.border.withOpacity(0.12),
           borderRadius: BorderRadius.circular(12),
         ),
       ),
     );
   }
 
-  Widget _workerTile(Worker w) {
+  Widget _workerTile(Worker w , AppColors colors) {
     return Dismissible(
       key: ValueKey(w.id),
       background: _swipeBg(Colors.green, "Mark Paid"),
@@ -199,11 +185,11 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
             colors: [
-              widget.cardGradientStart.withOpacity(0.25),
-              widget.cardGradientEnd.withOpacity(0.2),
+              colors.cardGradientStart.withOpacity(0.25),
+              colors.cardGradientEnd.withOpacity(0.2),
             ],
           ),
-          border: Border.all(color: widget.cardBorder.withOpacity(0.6)),
+          border: Border.all(color: colors.border.withOpacity(0.6)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -215,14 +201,14 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 Text(
                   w.name,
                   style: TextStyle(
-                    color: widget.primaryText,
+                    color: colors.primaryText,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
                 ),
                 Text(
                   w.role,
-                  style: TextStyle(color: widget.secondaryText),
+                  style: TextStyle(color: colors.secondaryText),
                 ),
               ],
             ),
@@ -234,7 +220,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 Text(
                   "₹${w.wage.toStringAsFixed(0)}",
                   style: TextStyle(
-                    color: widget.accent,
+                    color: colors.accent,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
@@ -274,14 +260,17 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     return Scaffold(
-      backgroundColor: widget.scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
-        iconTheme: IconThemeData(color: widget.primaryText),
+        iconTheme: IconThemeData(color: colors.primaryText),
         title: Text(
           "Workers - ${widget.investment.description}",
-          style: TextStyle(color: widget.primaryText),
+          style: TextStyle(color: colors.primaryText),
         ),
       ),
 
@@ -295,13 +284,13 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                 search = val;
                 _applyFilters();
               },
-              style: TextStyle(color: widget.primaryText),
+              style: TextStyle(color: colors.primaryText),
               decoration: InputDecoration(
                 hintText: "Search worker...",
-                hintStyle: TextStyle(color: widget.secondaryText),
-                prefixIcon: Icon(Icons.search, color: widget.secondaryText),
+                hintStyle: TextStyle(color: colors.secondaryText),
+                prefixIcon: Icon(Icons.search, color: colors.secondaryText),
                 filled: true,
-                fillColor: widget.cardBorder.withOpacity(0.12),
+                fillColor: colors.border.withOpacity(0.12),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -314,11 +303,11 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
             padding: const EdgeInsets.only(left: 16, bottom: 8),
             child: Row(
               children: [
-                _filterBtn("ALL"),
+                _filterBtn("ALL" , colors),
                 const SizedBox(width: 10),
-                _filterBtn("PAID"),
+                _filterBtn("PAID" , colors),
                 const SizedBox(width: 10),
-                _filterBtn("UNPAID"),
+                _filterBtn("UNPAID" , colors),
               ],
             ),
           ),
@@ -326,19 +315,19 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
           // WORKER LIST
           Expanded(
             child: showShimmer
-                ? _shimmer()
+                ? _shimmer(colors)
                 : visibleList.isEmpty
                 ? Center(
               child: Text(
                 "No workers found",
-                style: TextStyle(color: widget.secondaryText),
+                style: TextStyle(color: colors.secondaryText),
               ),
             )
                 : ListView.builder(
               controller: scrollCtrl,
               padding: const EdgeInsets.all(16),
               itemCount: visibleList.length,
-              itemBuilder: (_, i) => _workerTile(visibleList[i]),
+              itemBuilder: (_, i) => _workerTile(visibleList[i] , colors),
             ),
           ),
         ],
@@ -346,7 +335,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
     );
   }
 
-  Widget _filterBtn(String label) {
+  Widget _filterBtn(String label , AppColors colors) {
     final selected = filter == label;
 
     return GestureDetector(
@@ -359,14 +348,14 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
           color: selected
-              ? widget.accent
-              : widget.cardBorder.withOpacity(0.2),
+              ? colors.accent
+              : colors.border.withOpacity(0.2),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? Colors.black : widget.secondaryText,
+            color: selected ? Colors.black : colors.secondaryText,
             fontWeight: FontWeight.bold,
           ),
         ),

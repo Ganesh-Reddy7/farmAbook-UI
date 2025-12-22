@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/frosted_card.dart';
 import 'tractor_summary_screen.dart';
 import 'tractor_expenses_screen.dart';
@@ -33,17 +34,14 @@ class _TractorScreenState extends ConsumerState<TractorScreen>
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color secondaryText = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
-    final Color cardBorder = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+    final colors = AppColors.fromTheme(isDark);
     final statsAsync = ref.watch(tractorStatsProvider(2025));
     return SafeArea(
       child: Container(
-        color: scaffoldBg,
+        color: colors.card,
         child: Column(
           children: [
-            const SizedBox(height: 8),
+            // const SizedBox(height: 8),
             statsAsync.when(
               loading: () => const SizedBox(
                 height: 70,
@@ -54,7 +52,7 @@ class _TractorScreenState extends ConsumerState<TractorScreen>
                 child: Center(
                   child: Text(
                     "Error loading stats",
-                    style: TextStyle(color: secondaryText),
+                    style: TextStyle(color: colors.secondaryText),
                   ),
                 ),
               ),
@@ -122,10 +120,10 @@ class _TractorScreenState extends ConsumerState<TractorScreen>
                           title: item['title'] as String,
                           value: item['value'] as String,
                           primaryText: item['color'] as Color,
-                          secondaryText: secondaryText,
+                          secondaryText: colors.secondaryText,
                           gradientStart: shadeColor,
                           gradientEnd: shadeColor.withOpacity(0.03),
-                          borderColor: cardBorder,
+                          borderColor: colors.border,
                           leadingIcon: item['icon'] as IconData,
                         ),
                       );
@@ -141,9 +139,9 @@ class _TractorScreenState extends ConsumerState<TractorScreen>
 
               return TabBar(
                 controller: _tabController,
-                labelColor: accent,
-                unselectedLabelColor: secondaryText,
-                indicatorColor: accent,
+                labelColor: colors.accent,
+                unselectedLabelColor: colors.secondaryText,
+                indicatorColor: colors.accent,
                 isScrollable: !isWideScreen,
                 tabAlignment:
                 isWideScreen ? TabAlignment.fill : TabAlignment.start,

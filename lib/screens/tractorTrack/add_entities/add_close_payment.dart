@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../../services/TractorService/tractor_service.dart';
 import 'package:flutter/services.dart';
 
+import '../../../theme/app_colors.dart';
+
 class PaymentDetailsPage extends StatefulWidget {
   final int activityId;
   final String title;
@@ -33,8 +35,8 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -85,9 +87,7 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
     );
   }
 
-  // ================= UI SECTIONS ==================
-
-  Widget _buildDetailsCard(_AppColors colors) {
+  Widget _buildDetailsCard(AppColors colors) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -138,7 +138,7 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
     );
   }
 
-  Widget _buildAddPaymentCard(_AppColors colors, bool isDark) {
+  Widget _buildAddPaymentCard(AppColors colors, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -197,7 +197,7 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
     );
   }
 
-  Widget _buildClosePaymentButton(_AppColors colors) {
+  Widget _buildClosePaymentButton(AppColors colors) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -212,8 +212,6 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
       ),
     );
   }
-
-  // ================== API CALLS ===================
 
   Future<void> _addPaymentAPI() async {
     final amount = double.tryParse(_paymentController.text);
@@ -264,9 +262,7 @@ class _PaymentDetailsPageState extends State<PaymentDetailsPage> {
     }
   }
 
-  // ================== HELPERS ===================
-
-  Widget _buildRow(String title, String value, _AppColors colors,
+  Widget _buildRow(String title, String value, AppColors colors,
       {bool bold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -312,15 +308,4 @@ class _MaxAmountFormatter extends TextInputFormatter {
 
     return newValue;
   }
-}
-
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF081712) : Colors.white,
-        card = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3),
-        text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

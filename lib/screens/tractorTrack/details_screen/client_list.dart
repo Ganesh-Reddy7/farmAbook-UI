@@ -1,5 +1,6 @@
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import '../../../theme/app_colors.dart';
 import '../../../utils/slide_route.dart';
 import '../../../widgets/no_data_widget.dart';
 import '../add_entities/add_client.dart';
@@ -70,9 +71,8 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -104,8 +104,7 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
       ),
     );
   }
-  // -------------------- APPBAR --------------------
-  AppBar _buildAppBar(_AppColors colors) {
+  AppBar _buildAppBar(AppColors colors) {
     return AppBar(
       elevation: 0,
       backgroundColor: colors.background,
@@ -154,8 +153,7 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
     );
   }
 
-  // -------------------- CLIENT LIST WITH REFRESH --------------------
-  Widget _buildClientList(_AppColors colors , bool isDark) {
+  Widget _buildClientList(AppColors colors , bool isDark) {
     if (filteredClients.isEmpty) {
       return NoDataWidget(
         message: "No Client Data found",
@@ -202,8 +200,7 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
     );
   }
 
-  // -------------------- CLIENT TILE --------------------
-  Widget _buildClientTile(Map<String, dynamic> client, _AppColors colors) {
+  Widget _buildClientTile(Map<String, dynamic> client, AppColors colors) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -256,14 +253,4 @@ class _ViewClientsPageState extends State<ViewClientsPage> {
       ),
     );
   }
-}
-
-// -------------------- THEME HELPERS --------------------
-class _AppColors {
-  final Color background;
-  final Color text;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF081712) : const Color(0xFFF5F5F5),
-        text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

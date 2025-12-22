@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../models/Tractor.dart';
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../theme/app_colors.dart';
 
 class AddExpensePage extends StatefulWidget {
   const AddExpensePage({Key? key}) : super(key: key);
@@ -72,7 +73,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
 
   void _saveExpense() async {
     if (_formKey.currentState!.validate()) {
-
       final tractorId = _selectedTractor?.id;
       final date = _selectedDate?.toIso8601String();
       final type = _selectedExpenseType;
@@ -123,19 +123,15 @@ class _AddExpensePageState extends State<AddExpensePage> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark;
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final colors = _AppColors(isDark);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
-        backgroundColor: scaffoldBg,
+        backgroundColor: colors.card,
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: colors.text),
@@ -167,7 +163,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                     items: tractorNames,
                     displayText: (t) => t.displayName,
                     selected: _selectedTractor,
-                    color: scaffoldBg
+                    color: colors.card
                   );
 
                   if (selected != null) {
@@ -213,7 +209,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                     items: _expenseTypes,
                     displayText: (v) => v,
                     selected: _selectedExpenseType,
-                      color: scaffoldBg
+                      color: colors.card
                   );
 
                   if (selected != null) {
@@ -264,10 +260,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
                 },
                 colors: colors,
               ),
-
               const SizedBox(height: 20),
-
-              // ---------------- Description ----------------
               _fieldLabel("Description (Optional)", colors.text),
               _buildTextField(
                 controller: _descriptionController,
@@ -277,7 +270,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
 
               const SizedBox(height: 30),
 
-              // ---------------- Save Button ----------------
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
@@ -308,11 +300,9 @@ class _AddExpensePageState extends State<AddExpensePage> {
     );
   }
 
-  // -------------------- UI Helpers --------------------
-
   Widget _dropdownLikeField({
     required String value,
-    required _AppColors colors,
+    required AppColors colors,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -354,7 +344,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    required _AppColors colors,
+    required AppColors colors,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
   }) {
@@ -367,7 +357,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, _AppColors colors) {
+  InputDecoration _inputDecoration(String hint, AppColors colors) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: colors.text.withOpacity(0.5)),
@@ -387,7 +377,6 @@ class _AddExpensePageState extends State<AddExpensePage> {
   }
 }
 
-// -------------------- Premium Bottom Sheet --------------------
 Future<T?> showBottomSheetSelector<T>({
   required BuildContext context,
   required String title,
@@ -463,16 +452,4 @@ Future<T?> showBottomSheetSelector<T>({
       );
     },
   );
-}
-
-// -------------------- Theme Helper --------------------
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : const Color(0xFFFDFDFD),
-        card = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3),
-        text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

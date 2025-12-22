@@ -13,25 +13,8 @@ import 'add_entities/add_crop_screen.dart';
 import 'crop_details_screen.dart';
 
 class CropsScreen extends StatefulWidget {
-  final Color accent;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color scaffoldBg;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
 
-  const CropsScreen({
-    required this.accent,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.scaffoldBg,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
-    Key? key,
-  }) : super(key: key);
-
+  const CropsScreen({Key? key,}) : super(key: key);
   @override
   _CropsScreenState createState() => _CropsScreenState();
 }
@@ -86,19 +69,19 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
     final totalQty = currentYearCrops.fold<double>(0, (sum, c) => sum + (c.value ?? 0));
 
     return Scaffold(
-      backgroundColor: widget.scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: widget.primaryText),
+        iconTheme: IconThemeData(color: colors.primaryText),
         title: Text("Crops",
             style: TextStyle(
-                color: widget.primaryText,
+                color: colors.primaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 20)),
         actions: [
           IconButton(
-            icon: Icon(_isLineChart ?  Icons.show_chart : Icons.bar_chart, color: widget.accent),
+            icon: Icon(_isLineChart ?  Icons.show_chart : Icons.bar_chart, color: colors.accent),
             onPressed: () => setState(() => _isLineChart = !_isLineChart),
           ),
         ],
@@ -132,7 +115,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                   values2: chartReturns,
                   legend1: "Total Investment",
                   legend2: "Total Returns",
-                  lineColor1: widget.accent,
+                  lineColor1: colors.accent,
                   lineColor2: Colors.orangeAccent,
                 ),
               const SizedBox(height: 12),
@@ -152,7 +135,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                         items: years,
                         displayText: (year) => year.toString(),
                         backgroundColor: colors.card,
-                        textColor: widget.primaryText,
+                        textColor: colors.primaryText,
                         selected: _selectedYear,
                       );
 
@@ -167,13 +150,13 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                           _selectedYear.toString(),
                           style: TextStyle(
                             fontSize: 16,
-                            color: widget.primaryText,
+                            color: colors.primaryText,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Icon(
                           Icons.arrow_drop_down,
-                          color: widget.primaryText,
+                          color: colors.primaryText,
                         ),
                       ],
                     ),
@@ -181,7 +164,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                 ],
               ),
               const SizedBox(height: 16),
-              _totalAreaQuantityCard(totalArea, totalQty),
+              _totalAreaQuantityCard(totalArea, totalQty , colors),
               const SizedBox(height: 20),
 
               Container(
@@ -189,8 +172,8 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+                  color: colors.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: colors.border),
                 ),
                 child: SizedBox(
                   height: 220,
@@ -234,25 +217,25 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      widget.cardGradientStart.withOpacity(0.1),
-                      widget.cardGradientEnd.withOpacity(0.05),
+                      colors.cardGradientStart.withOpacity(0.1),
+                      colors.cardGradientEnd.withOpacity(0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border:
-                  Border.all(color: widget.cardBorder.withOpacity(0.3)),
+                  Border.all(color: colors.border.withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
-                    Icon(Icons.info_outline, size: 40, color: widget.accent),
+                    Icon(Icons.info_outline, size: 40, color: colors.accent),
                     const SizedBox(height: 12),
                     SectionTitle(title: "No crops available", isDark: isDark , fontSize:16),
                     const SizedBox(height: 6),
                     Text(
                       "Please add crops to view details.",
-                      style: TextStyle(color: widget.secondaryText),
+                      style: TextStyle(color: colors.secondaryText),
                     ),
                   ],
                 ),
@@ -263,7 +246,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                 itemCount: currentYearCrops.length,
                 itemBuilder: (context, index) {
                   final crop = currentYearCrops[index];
-                  return _buildCropCard(crop);
+                  return _buildCropCard(crop , colors);
                 },
               ),
             ],
@@ -273,7 +256,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
       floatingActionButton: FloatingActionButton(
         mini: true,
         heroTag: "add-crop",
-        backgroundColor: widget.accent,
+        backgroundColor: colors.accent,
         onPressed: () async {
           final result = await Navigator.of(context).push(
             SlideFromRightRoute(
@@ -290,7 +273,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
   }
 
   // -------------------- Build Crop Card --------------------
-  Widget _buildCropCard(Crop crop) {
+  Widget _buildCropCard(Crop crop , AppColors colors) {
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       splashColor: Colors.transparent,
@@ -314,9 +297,9 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
-          color: widget.cardGradientStart.withOpacity(0.06),
+          color: colors.cardGradientStart.withOpacity(0.06),
           border: Border.all(
-            color: widget.cardBorder.withOpacity(0.35),
+            color: colors.border.withOpacity(0.35),
           ),
         ),
         child: Column(
@@ -332,7 +315,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
                     style: TextStyle(
                       fontSize: 16.5,
                       fontWeight: FontWeight.w600,
-                      color: widget.primaryText,
+                      color: colors.primaryText,
                     ),
                   ),
                 ),
@@ -345,7 +328,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
             ),
 
             const SizedBox(height: 8),
-            _metaRow(crop),
+            _metaRow(crop , colors),
             const SizedBox(height: 12),
 
             Row(
@@ -405,22 +388,25 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
     );
   }
 
-  Widget _metaRow(Crop crop) {
+  Widget _metaRow(Crop crop , AppColors colors) {
     return Row(
       children: [
         _metaItem(
           icon: Icons.calendar_today,
           text: _formatDate(crop.plantedDate),
+          colors: colors
         ),
         const SizedBox(width: 14),
         _metaItem(
           icon: Icons.square_foot,
           text: "${crop.area.toStringAsFixed(1)} acres",
+          colors: colors
         ),
         const SizedBox(width: 14),
         _metaItem(
           icon: Icons.inventory_2,
           text: "Qty ${crop.value?.toStringAsFixed(0) ?? '0'}",
+          colors: colors
         ),
       ],
     );
@@ -429,17 +415,18 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
   Widget _metaItem({
     required IconData icon,
     required String text,
+    required AppColors colors
   }) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: widget.secondaryText),
+        Icon(icon, size: 14, color: colors.secondaryText),
         const SizedBox(width: 4),
         Text(
           text,
           style: TextStyle(
             fontSize: 13.8,
             fontWeight: FontWeight.w500,
-            color: widget.secondaryText,
+            color: colors.secondaryText,
           ),
         ),
       ],
@@ -451,7 +438,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
     return "${date.day}-${date.month}-${date.year}";
   }
 
-  Widget _totalAreaQuantityCard(double totalArea, double totalQty) {
+  Widget _totalAreaQuantityCard(double totalArea, double totalQty , AppColors colors) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -459,29 +446,30 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
           colors: [
-            widget.cardGradientStart.withOpacity(0.1),
-            widget.cardGradientEnd.withOpacity(0.05),
+            colors.cardGradientStart.withOpacity(0.1),
+            colors.cardGradientEnd.withOpacity(0.05),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+        border: Border.all(color: colors.border.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _areaQuantityColumn(
             icon: Icons.landscape,
-            iconBg: widget.accent.withOpacity(0.2),
+            iconBg: colors.accent.withOpacity(0.2),
             amount: totalArea,
             title: "Total Area",
             amountSuffix: "ha",
-            amountColor: widget.accent,
+            amountColor: colors.accent,
+            colors: colors
           ),
           Container(
             width: 1,
             height: 60,
-            color: widget.cardBorder.withOpacity(0.3),
+            color: colors.border.withOpacity(0.3),
           ),
           _areaQuantityColumn(
             icon: Icons.inventory_2,
@@ -490,6 +478,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
             title: "Total Quantity",
             amountSuffix: "",
             amountColor: Colors.orange.shade700,
+            colors: colors
           ),
         ],
       ),
@@ -502,6 +491,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
     required double amount,
     required String title,
     required Color amountColor,
+    required AppColors colors,
     String amountSuffix = "",
   }) {
     return Column(
@@ -512,7 +502,7 @@ class _CropsScreenState extends State<CropsScreen> with AutomaticKeepAliveClient
           child: Icon(icon, color: amountColor, size: 28),
         ),
         const SizedBox(height: 8),
-        Text(title, style: TextStyle(fontSize: 14, color: widget.secondaryText)),
+        Text(title, style: TextStyle(fontSize: 14, color: colors.secondaryText)),
         const SizedBox(height: 4),
         Text(
           "${amount.toStringAsFixed(amountSuffix.isNotEmpty ? 1 : 0)} $amountSuffix",

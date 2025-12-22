@@ -1,7 +1,6 @@
 import 'dart:math' hide log;
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../../models/SummaryData.dart';
 import '../../models/CropData.dart';
 import '../../services/reports_service.dart';
@@ -13,24 +12,8 @@ import '../../widgets/common_bottom_sheet_selector.dart';
 import '../../widgets/sectionTitle.dart';
 
 class SummaryScreen extends StatefulWidget {
-  final Color accent;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color scaffoldBg;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
 
-  const SummaryScreen({
-    required this.accent,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.scaffoldBg,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
-    Key? key,
-  }) : super(key: key);
+  const SummaryScreen({Key? key}) : super(key: key);
 
   @override
   State<SummaryScreen> createState() => _SummaryScreenState();
@@ -79,20 +62,16 @@ class _SummaryScreenState extends State<SummaryScreen>
         yearlyInvestments.clear();
         yearlyReturns.clear();
 
-        chartYears =
-            summaryList.map<String>((y) => y.year.toString()).toList();
-        chartInvestments =
-            summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
-        chartReturns =
-            summaryList.map<double>((y) => y.totalReturns.toDouble()).toList();
+        chartYears = summaryList.map<String>((y) => y.year.toString()).toList();
+        chartInvestments = summaryList.map<double>((y) => y.totalInvestment.toDouble()).toList();
+        chartReturns = summaryList.map<double>((y) => y.totalReturns.toDouble()).toList();
 
         for (var e in summaryList) {
           yearlyInvestments[e.year] = e.totalInvestment;
           yearlyReturns[e.year] = e.totalReturns;
         }
 
-        _selectedSummary =
-            summaryList.firstWhere((e) => e.year == _selectedYear);
+        _selectedSummary = summaryList.firstWhere((e) => e.year == _selectedYear);
 
         // Fetch all-time crops
         final allTimeCrops =
@@ -101,8 +80,7 @@ class _SummaryScreenState extends State<SummaryScreen>
         allTimeLowCrops = allTimeCrops['lowCrops'] ?? [];
 
         // Fetch selected year crops
-        final yearCrops = await ReportsService()
-            .getCropsDistributionData(year: _selectedYear);
+        final yearCrops = await ReportsService().getCropsDistributionData(year: _selectedYear);
         selectedYearTopCrops = yearCrops['topCrops'] ?? [];
         selectedYearLowCrops = yearCrops['lowCrops'] ?? [];
       } else {
@@ -119,18 +97,18 @@ class _SummaryScreenState extends State<SummaryScreen>
       setState(() => _isLoading = false);
     }
   }
-  BoxDecoration _cardDecoration() {
+  BoxDecoration _cardDecoration(AppColors colors) {
     return BoxDecoration(
       gradient: LinearGradient(
         colors: [
-          widget.cardGradientStart.withOpacity(0.1),
-          widget.cardGradientEnd.withOpacity(0.05),
+          colors.cardGradientStart.withOpacity(0.1),
+          colors.cardGradientEnd.withOpacity(0.05),
         ],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
       borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+      border: Border.all(color: colors.border.withOpacity(0.3)),
       boxShadow: [
         BoxShadow(
           color: Colors.black.withOpacity(0.05),
@@ -144,17 +122,15 @@ class _SummaryScreenState extends State<SummaryScreen>
   @override
   Widget build(BuildContext context) {
     super.build(context);
-
-    final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark;
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final colors = AppColors.fromTheme(isDark);
 
     return Scaffold(
-      backgroundColor: widget.scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: widget.primaryText),
+        iconTheme: IconThemeData(color: colors.primaryText),
         title: SectionTitle(
           title: "Summary (Investment & Returns)",
           isDark: isDark,
@@ -164,7 +140,7 @@ class _SummaryScreenState extends State<SummaryScreen>
           IconButton(
             icon: Icon(
               _showBarChart ? Icons.show_chart : Icons.bar_chart,
-              color: widget.accent,
+              color: colors.accent,
             ),
             onPressed: () {
               setState(() {
@@ -193,7 +169,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               child: Text(
                 "No summary data available",
                 style: TextStyle(
-                  color: widget.secondaryText,
+                  color: colors.secondaryText,
                   fontSize: 16,
                 ),
               ),
@@ -227,8 +203,8 @@ class _SummaryScreenState extends State<SummaryScreen>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+                  color: colors.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: colors.border),
                 ),
                 child: SizedBox(
                   height: 220,
@@ -244,7 +220,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               const SizedBox(height: 16),
               /// Summary card (investment & returns)
               if (_selectedSummary != null)
-                _buildSummaryCard(_selectedYear, _selectedSummary!),
+                _buildSummaryCard(_selectedYear, _selectedSummary! , colors),
 
               const SizedBox(height: 24),
 
@@ -256,7 +232,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               ),
               const SizedBox(height: 8),
               RepaintBoundary(
-                child: _buildCropCards(allTimeTopCrops),
+                child: _buildCropCards(allTimeTopCrops , colors),
               ),
               const SizedBox(height: 16),
               SectionTitle(
@@ -266,7 +242,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               ),
               const SizedBox(height: 8),
               RepaintBoundary(
-                child: _buildCropCards(allTimeLowCrops),
+                child: _buildCropCards(allTimeLowCrops , colors),
               ),
 
               const SizedBox(height: 24),
@@ -279,7 +255,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               ),
               const SizedBox(height: 8),
               RepaintBoundary(
-                child: _buildCropCards(selectedYearTopCrops),
+                child: _buildCropCards(selectedYearTopCrops , colors),
               ),
               const SizedBox(height: 16),
               SectionTitle(
@@ -289,7 +265,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               ),
               const SizedBox(height: 8),
               RepaintBoundary(
-                child: _buildCropCards(selectedYearLowCrops),
+                child: _buildCropCards(selectedYearLowCrops , colors),
               ),
             ],
           ),
@@ -304,7 +280,7 @@ class _SummaryScreenState extends State<SummaryScreen>
       return Center(
         child: Text(
           "No chart data available",
-          style: TextStyle(color: widget.secondaryText),
+          style: TextStyle(color: colors.secondaryText),
         ),
       );
     }
@@ -360,7 +336,7 @@ class _SummaryScreenState extends State<SummaryScreen>
               items: summaryList.map((e) => e.year).toList(),
               displayText: (year) => year.toString(),
               backgroundColor: colors.card,
-              textColor: widget.primaryText,
+              textColor: colors.primaryText,
               selected: _selectedYear,
             );
             if (selectedYear != null && selectedYear != _selectedYear) {
@@ -372,11 +348,11 @@ class _SummaryScreenState extends State<SummaryScreen>
               Text(
                 _selectedYear.toString(),
                 style: TextStyle(
-                  color: widget.primaryText,
+                  color: colors.primaryText,
                   fontSize: 16,
                 ),
               ),
-              Icon(Icons.arrow_drop_down, color: widget.primaryText),
+              Icon(Icons.arrow_drop_down, color: colors.primaryText),
             ],
           ),
         ),
@@ -402,29 +378,29 @@ class _SummaryScreenState extends State<SummaryScreen>
     });
   }
 
-  Widget _buildCropCards(List<CropData> crops) {
+  Widget _buildCropCards(List<CropData> crops , AppColors colors) {
     if (crops.isEmpty) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         margin: const EdgeInsets.symmetric(vertical: 12),
-        decoration: _cardDecoration(),
+        decoration: _cardDecoration(colors),
         child: Column(
           children: [
-            Icon(Icons.info_outline, size: 40, color: widget.accent),
+            Icon(Icons.info_outline, size: 40, color: colors.accent),
             const SizedBox(height: 12),
             Text(
               "No crops data available",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: widget.secondaryText,
+                color: colors.secondaryText,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               "Please add crops to view details.",
-              style: TextStyle(color: widget.secondaryText),
+              style: TextStyle(color: colors.secondaryText),
             ),
           ],
         ),
@@ -439,9 +415,9 @@ class _SummaryScreenState extends State<SummaryScreen>
           padding: const EdgeInsets.all(16),
           margin: const EdgeInsets.symmetric(vertical: 6),
           decoration: BoxDecoration(
-            color: widget.cardGradientStart.withOpacity(0.08),
+            color: colors.cardGradientStart.withOpacity(0.08),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: widget.cardBorder.withOpacity(0.2)),
+            border: Border.all(color: colors.border.withOpacity(0.2)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,7 +431,7 @@ class _SummaryScreenState extends State<SummaryScreen>
                     style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w600,
-                      color: widget.primaryText,
+                      color: colors.primaryText,
                     ),
                   ),
                   Container(
@@ -483,13 +459,11 @@ class _SummaryScreenState extends State<SummaryScreen>
 
               const SizedBox(height: 10),
 
-              /// Investment & Returns row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _statRow(Icons.account_balance_wallet_outlined,
-                      "Investment", crop.totalInvestment),
-                  _statRow(Icons.attach_money, "Returns", crop.totalReturns),
+                  _statRow(Icons.account_balance_wallet_outlined, "Investment", crop.totalInvestment , colors),
+                  _statRow(Icons.attach_money, "Returns", crop.totalReturns , colors),
                 ],
               ),
 
@@ -505,7 +479,7 @@ class _SummaryScreenState extends State<SummaryScreen>
                   Text(
                     "Yield: ${crop.yieldValue.toStringAsFixed(2)}",
                     style: TextStyle(
-                      color: widget.primaryText,
+                      color: colors.primaryText,
                       fontSize: 14,
                     ),
                   ),
@@ -518,86 +492,38 @@ class _SummaryScreenState extends State<SummaryScreen>
     );
   }
 
-  Widget _statRow(IconData icon, String label, num value) {
+  Widget _statRow(IconData icon, String label, num value , AppColors colors) {
     return Row(
       children: [
-        Icon(icon, size: 18, color: widget.primaryText),
+        Icon(icon, size: 18, color: colors.primaryText),
         const SizedBox(width: 4),
         Text(
           "$label: ",
           style: TextStyle(
             fontSize: 14,
-            color: widget.secondaryText,
+            color: colors.secondaryText,
           ),
         ),
         Text(
           "₹${value.toStringAsFixed(0)}",
           style: TextStyle(
             fontWeight: FontWeight.w600,
-            color: widget.primaryText,
+            color: colors.primaryText,
           ),
         ),
       ],
     );
   }
 
-  Widget _buildInvestmentReturnPieChart() {
-    if (summaryList.isEmpty || _selectedSummary == null) {
-      return Center(
-        child: Text(
-          "No pie chart data",
-          style: TextStyle(color: widget.secondaryText),
-        ),
-      );
-    }
-
-    final selectedData = _selectedSummary!;
-
-    if (selectedData.totalInvestment == 0 &&
-        selectedData.totalReturns == 0) {
-      return Center(
-        child: Text(
-          "No pie chart data",
-          style: TextStyle(color: widget.secondaryText),
-        ),
-      );
-    }
-
-    return PieChart(
-      PieChartData(
-        centerSpaceRadius: 40,
-        sections: [
-          PieChartSectionData(
-            value: selectedData.totalInvestment,
-            color: widget.accent,
-            title: selectedData.totalInvestment > 0
-                ? "₹${selectedData.totalInvestment.toInt()}"
-                : "",
-            radius: 60,
-          ),
-          PieChartSectionData(
-            value: selectedData.totalReturns,
-            color: Colors.orangeAccent,
-            title: selectedData.totalReturns > 0
-                ? "₹${selectedData.totalReturns.toInt()}"
-                : "",
-            radius: 60,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(int year, SummaryData summary) {
+  Widget _buildSummaryCard(int year, SummaryData summary , AppColors colors) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.symmetric(vertical: 12),
-      decoration: _cardDecoration(),
+      decoration: _cardDecoration(colors),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // Investment
           Column(
             children: [
               Container(
@@ -618,7 +544,7 @@ class _SummaryScreenState extends State<SummaryScreen>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: widget.primaryText,
+                  color: colors.primaryText,
                 ),
               ),
               const SizedBox(height: 4),
@@ -627,13 +553,12 @@ class _SummaryScreenState extends State<SummaryScreen>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: widget.primaryText,
+                  color: colors.primaryText,
                 ),
               ),
             ],
           ),
 
-          // Returns
           Column(
             children: [
               Container(
@@ -654,7 +579,7 @@ class _SummaryScreenState extends State<SummaryScreen>
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: widget.primaryText,
+                  color: colors.primaryText,
                 ),
               ),
               const SizedBox(height: 4),
@@ -663,7 +588,7 @@ class _SummaryScreenState extends State<SummaryScreen>
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
-                  color: widget.primaryText,
+                  color: colors.primaryText,
                 ),
               ),
             ],

@@ -14,23 +14,9 @@ import 'add_entities/add_returns_screen.dart';
 import 'detail_screens/return_details_screen.dart';
 
 class ReturnsScreen extends StatefulWidget {
-  final Color accent;
-  final Color primaryText;
-  final Color secondaryText;
-  final Color scaffoldBg;
-  final Color cardGradientStart;
-  final Color cardGradientEnd;
-  final Color cardBorder;
   final VoidCallback? onDataChanged;
 
   const ReturnsScreen({
-    required this.accent,
-    required this.primaryText,
-    required this.secondaryText,
-    required this.scaffoldBg,
-    required this.cardGradientStart,
-    required this.cardGradientEnd,
-    required this.cardBorder,
     this.onDataChanged,
     Key? key,
   }) : super(key: key);
@@ -89,17 +75,17 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
     final lastFiveYears = List.generate(5, (i) => DateTime.now().year - i).reversed.toList();
 
     return Scaffold(
-      backgroundColor: widget.scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: IconThemeData(color: widget.primaryText),
+        iconTheme: IconThemeData(color: colors.primaryText),
         title:SectionTitle(title: "Returns", isDark: isDark , fontSize:18),
         actions: [
           IconButton(
             icon: Icon(
               _isLineChart ? Icons.bar_chart : Icons.show_chart,
-              color: widget.accent,
+              color: colors.accent,
             ),
             onPressed: () => setState(() => _isLineChart = !_isLineChart),
           )
@@ -146,7 +132,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                         items: lastFiveYears,
                         displayText: (year) => year.toString(),
                         backgroundColor: colors.card,
-                        textColor: widget.primaryText,
+                        textColor: colors.primaryText,
                         selected: _selectedYear,
                       );
                       if (selectedYear != null) {
@@ -160,13 +146,13 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                           _selectedYear.toString(),
                           style: TextStyle(
                             fontSize: 16,
-                            color: widget.primaryText,
+                            color: colors.primaryText,
                           ),
                         ),
                         const SizedBox(width: 6),
                         Icon(
                           Icons.arrow_drop_down,
-                          color: widget.primaryText,
+                          color: colors.primaryText,
                         ),
                       ],
                     ),
@@ -182,13 +168,13 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                   borderRadius: BorderRadius.circular(20),
                   gradient: LinearGradient(
                     colors: [
-                      widget.cardGradientStart.withOpacity(0.1),
-                      widget.cardGradientEnd.withOpacity(0.05),
+                      colors.cardGradientStart.withOpacity(0.1),
+                      colors.cardGradientEnd.withOpacity(0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  border: Border.all(color: widget.cardBorder.withOpacity(0.3)),
+                  border: Border.all(color: colors.border.withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
@@ -200,17 +186,17 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: widget.accent.withOpacity(0.2),
+                                color: colors.accent.withOpacity(0.2),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(Icons.savings,
-                                  color: widget.accent, size: 28),
+                                  color: colors.accent, size: 28),
                             ),
                             const SizedBox(height: 8),
                             Text(
                               "Total Returns",
                               style: TextStyle(
-                                  fontSize: 14, color: widget.secondaryText),
+                                  fontSize: 14, color: colors.secondaryText),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -218,7 +204,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                               style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: widget.accent),
+                                  color: colors.accent),
                             ),
                           ],
                         ),
@@ -235,8 +221,8 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  color: widget.cardGradientStart.withOpacity(0.05),
-                  border: Border.all(color: widget.cardBorder),
+                  color: colors.cardGradientStart.withOpacity(0.05),
+                  border: Border.all(color: colors.border),
                 ),
                 child: SizedBox(
                   height: 220,
@@ -280,36 +266,36 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      widget.cardGradientStart.withOpacity(0.1),
-                      widget.cardGradientEnd.withOpacity(0.05),
+                      colors.cardGradientStart.withOpacity(0.1),
+                      colors.cardGradientEnd.withOpacity(0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border:
-                  Border.all(color: widget.cardBorder.withOpacity(0.3)),
+                  Border.all(color: colors.border.withOpacity(0.3)),
                 ),
                 child: Column(
                   children: [
                     Icon(Icons.info_outline,
-                        size: 40, color: widget.accent),
+                        size: 40, color: colors.accent),
                     const SizedBox(height: 12),
                     Text(
                       "No returns available",
                       style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          color: widget.secondaryText),
+                          color: colors.secondaryText),
                     ),
                     const SizedBox(height: 6),
                     Text("Please add returns to view details.",
-                      style: TextStyle(color: widget.secondaryText),
+                      style: TextStyle(color: colors.secondaryText),
                     ),
                   ],
                 ),
               )
-                  : Column(children: currentYearReturns.map((ret) => _returnItem(ret)).toList(),
+                  : Column(children: currentYearReturns.map((ret) => _returnItem(ret , colors)).toList(),
               ),
             ],
           ),
@@ -317,7 +303,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
       ),
       floatingActionButton: FloatingActionButton(
         mini: true,
-        backgroundColor: widget.accent,
+        backgroundColor: colors.accent,
         heroTag: "add-returns",
         onPressed: () async {
           final result = await Navigator.of(context).push(
@@ -333,7 +319,8 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
       ),
     );
   }
-  Widget _returnItem(ReturnsList ret) {
+
+  Widget _returnItem(ReturnsList ret , AppColors colors) {
     final double screenW = MediaQuery.of(context).size.width;
 
     final double titleSize = screenW < 360 ? 14 : 16;
@@ -356,10 +343,10 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
 
         /// Updated design --- NO BLUR → SUPER FAST
         decoration: BoxDecoration(
-          color: widget.cardGradientStart.withOpacity(0.07),
+          color: colors.cardGradientStart.withOpacity(0.07),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: widget.cardBorder.withOpacity(0.30),
+            color: colors.border.withOpacity(0.30),
           ),
           boxShadow: [
             BoxShadow(
@@ -374,7 +361,6 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // LEFT SIDE – Crop Name & Production
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,7 +370,7 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                     style: TextStyle(
                       fontSize: titleSize,
                       fontWeight: FontWeight.bold,
-                      color: widget.primaryText,
+                      color: colors.primaryText,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -392,22 +378,19 @@ class _ReturnsScreenState extends State<ReturnsScreen> with AutomaticKeepAliveCl
                     "Production: ${ret.totalProduction}",
                     style: TextStyle(
                       fontSize: subTitleSize,
-                      color: widget.secondaryText,
+                      color: colors.secondaryText,
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(width: 10),
-
-            // RIGHT SIDE – Amount ₹
             Text(
               "₹${ret.totalReturns.toStringAsFixed(0)}",
               style: TextStyle(
                 fontSize: amountSize,
                 fontWeight: FontWeight.bold,
-                color: widget.accent,
+                color: colors.accent,
               ),
             ),
           ],

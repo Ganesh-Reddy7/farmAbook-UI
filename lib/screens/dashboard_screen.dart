@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/user.dart';
 import '../services/reports_service.dart';
+import '../theme/app_colors.dart';
 import '../widgets/frosted_card.dart';
 import 'dashboard/summary_screen.dart';
 import 'dashboard/investments_screen.dart';
@@ -48,11 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen>
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color primaryText = isDark ? Colors.white : Colors.black87;
-    final Color secondaryText = isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color accent = isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
-    final Color cardBorder = isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+    final colors = AppColors.fromTheme(isDark);
 
     final double profitOrLoss = (_reportData?['profitOrLoss'] ?? 0).toDouble();
     final double totalInvestment = (_reportData?['totalInvestment'] ?? 0).toDouble();
@@ -89,8 +86,7 @@ class _DashboardScreenState extends State<DashboardScreen>
 
     return Column(
       children: [
-        const SizedBox(height: 8),
-        //  Wider & softly tinted summary cards
+        // const SizedBox(height: 8),
         SizedBox(
           height: 70,
           child: ListView.separated(
@@ -107,10 +103,10 @@ class _DashboardScreenState extends State<DashboardScreen>
                   title: item['title'] as String,
                   value: item['value'] as String,
                   primaryText: item['color'] as Color,
-                  secondaryText: secondaryText,
+                  secondaryText: colors.secondaryText,
                   gradientStart: shadeColor,
                   gradientEnd: shadeColor.withOpacity(0.03),
-                  borderColor: cardBorder,
+                  borderColor: colors.border,
                   leadingIcon: item['icon'] as IconData,
                 ),
               );
@@ -122,9 +118,9 @@ class _DashboardScreenState extends State<DashboardScreen>
           controller: _tabController,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          labelColor: accent,
-          unselectedLabelColor: secondaryText,
-          indicatorColor: accent,
+          labelColor: colors.accent,
+          unselectedLabelColor: colors.secondaryText,
+          indicatorColor: colors.accent,
           labelPadding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 0),
 
           tabs: const [
@@ -139,44 +135,14 @@ class _DashboardScreenState extends State<DashboardScreen>
           child: TabBarView(
             controller: _tabController,
             children: [
-              SummaryScreen(
-                accent: accent,
-                primaryText: primaryText,
-                secondaryText: secondaryText,
-                scaffoldBg: scaffoldBg,
-                cardGradientStart: Colors.transparent,
-                cardGradientEnd: Colors.transparent,
-                cardBorder: cardBorder,
-              ),
+              SummaryScreen(),
               InvestmentsScreen(
-                accent: accent,
-                primaryText: primaryText,
-                secondaryText: secondaryText,
-                scaffoldBg: scaffoldBg,
-                cardGradientStart: Colors.transparent,
-                cardGradientEnd: Colors.transparent,
-                cardBorder: cardBorder,
                 onDataChanged: _loadReports,
               ),
               ReturnsScreen(
-                accent: accent,
-                primaryText: primaryText,
-                secondaryText: secondaryText,
-                scaffoldBg: scaffoldBg,
-                cardGradientStart: Colors.transparent,
-                cardGradientEnd: Colors.transparent,
-                cardBorder: cardBorder,
                 onDataChanged: _loadReports,
               ),
-              CropsScreen(
-                accent: accent,
-                primaryText: primaryText,
-                secondaryText: secondaryText,
-                scaffoldBg: scaffoldBg,
-                cardGradientStart: Colors.transparent,
-                cardGradientEnd: Colors.transparent,
-                cardBorder: cardBorder,
-              ),
+              CropsScreen(),
             ],
           ),
         ),

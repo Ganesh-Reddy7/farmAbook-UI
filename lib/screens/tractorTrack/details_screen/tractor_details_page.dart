@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../theme/app_colors.dart';
 import '../../../widgets/NegativeBarChart.dart';
 import '../../../widgets/barChart.dart';
 import '../../../widgets/sectionTitle.dart';
@@ -59,23 +60,15 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
   Widget build(BuildContext context) {
     final Map<String, dynamic> tractor = widget.tractor;
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color textColor = isDark ? Colors.white : Colors.black87;
-    final Color secondaryText =
-    isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color borderColor =
-    isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
-
+    final colors = AppColors.fromTheme(isDark);
     final double screenWidth = MediaQuery.of(context).size.width;
-    final colors = _AppColors(isDark);
 
     final String model = (tractor['model'] ?? 'Unknown Model').toString();
     final String serial = (tractor['serialNumber'] ?? '-').toString();
     final String make = (tractor['make'] ?? 'N/A').toString();
     final String status = (tractor['status'] ?? 'Inactive').toString();
 
-    double toDouble(dynamic value) =>
-        value == null ? 0.0 : double.tryParse(value.toString()) ?? 0.0;
+    double toDouble(dynamic value) => value == null ? 0.0 : double.tryParse(value.toString()) ?? 0.0;
 
     final double hp = toDouble(tractor['capacityHp']);
     final double expenses = toDouble(tractor['totalExpenses']);
@@ -88,11 +81,11 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
     if (screenWidth < 350) cardWidth = (screenWidth - 40) / 2;
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: colors.card,
       appBar: AppBar(
         title: Text("$model ($serial)",
-            style: TextStyle(color: textColor, fontWeight: FontWeight.w600)),
-        iconTheme: IconThemeData(color: textColor),
+            style: TextStyle(color: colors.primaryText, fontWeight: FontWeight.w600)),
+        iconTheme: IconThemeData(color: colors.primaryText),
         elevation: 0,
         backgroundColor: Colors.transparent,
         actions: [
@@ -114,7 +107,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: borderColor),
+                border: Border.all(color: colors.border),
                 gradient: LinearGradient(
                   colors: isDark
                       ? [Colors.white.withOpacity(0.05), Colors.transparent]
@@ -149,17 +142,17 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                             style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
-                                color: textColor)),
+                                color: colors.primaryText)),
                         const SizedBox(height: 6),
                         Text("Make: $make | Power: ${hp.toStringAsFixed(0)} HP",
                             style:
-                            TextStyle(color: secondaryText, fontSize: 14)),
+                            TextStyle(color: colors.secondaryText, fontSize: 14)),
                         const SizedBox(height: 6),
                         Row(
                           children: [
                             Text("Status: ",
                                 style: TextStyle(
-                                    color: secondaryText, fontSize: 14)),
+                                    color: colors.secondaryText, fontSize: 14)),
                             Text(
                               status,
                               style: TextStyle(
@@ -177,9 +170,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                 ],
               ),
             ),
-
             const SizedBox(height: 20),
-
             Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -191,7 +182,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                     Colors.red,
                     isDark,
                     cardWidth,
-                    borderColor),
+                    colors.border),
                 _metricCard(
                     "Total Returns",
                     "₹${returns.toStringAsFixed(2)}",
@@ -199,7 +190,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                     Colors.green,
                     isDark,
                     cardWidth,
-                    borderColor),
+                    colors.border),
                 _metricCard(
                     "Fuel Used",
                     "${fuel.toStringAsFixed(1)} L",
@@ -207,7 +198,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                     Colors.orange,
                     isDark,
                     cardWidth,
-                    borderColor),
+                    colors.border),
                 _metricCard(
                     "Area Worked",
                     "${area.toStringAsFixed(2)} acres",
@@ -215,7 +206,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                     Colors.blue,
                     isDark,
                     cardWidth,
-                    borderColor),
+                    colors.border),
                 _metricCard(
                     "Net Profit",
                     "₹${profit.toStringAsFixed(2)}",
@@ -223,7 +214,7 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
                     profit >= 0 ? Colors.green : Colors.red,
                     isDark,
                     cardWidth,
-                    borderColor),
+                    colors.border),
               ],
             ),
             const SizedBox(height: 28),
@@ -275,11 +266,9 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
     );
   }
 
-  Widget _metricCard(String title, String value, IconData icon, Color color,
-      bool isDark, double width, Color borderColor) {
+  Widget _metricCard(String title, String value, IconData icon, Color color, bool isDark, double width, Color borderColor) {
     final Color textColor = isDark ? Colors.white : Colors.black87;
-    final Color overlay =
-    isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03);
+    final Color overlay = isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03);
 
     return SizedBox(
       width: width,
@@ -313,17 +302,4 @@ class _TractorDetailPageState extends State<TractorDetailPage> {
       ),
     );
   }
-}
-
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-  final Color divider;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : Colors.white,
-        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87,
-        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }

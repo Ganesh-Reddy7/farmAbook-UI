@@ -4,6 +4,7 @@ import 'package:farmabook/widgets/sectionTitle.dart';
 import 'package:farmabook/widgets/tractorInfoCard.dart';
 import 'package:flutter/material.dart';
 import '../../services/TractorService/tractor_service.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/slide_route.dart';
 import '../../widgets/no_data_widget.dart';
 import 'add_entities/add_close_payment.dart';
@@ -150,7 +151,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
   void _openFilterSheet() {
     final theme = Theme.of(context);
     final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final colors = AppColors.fromTheme(isDark);
     final Color accentColor = Colors.green.shade700;
 
     String tmpFilter = selectedFilter;
@@ -423,7 +424,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
   Widget _buildSelectorField({
     required String label,
     required String value,
-    required _AppColors colors,
+    required AppColors colors,
     required Color accentColor,
   }) {
     return Column(
@@ -482,7 +483,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
     }
   }
 
-  Widget _buildStatusTabs(_AppColors colors) {
+  Widget _buildStatusTabs(AppColors colors) {
     final tabs = [
       {"key": "ALL", "label": "All", "count": allActivities.length},
       {"key": "PENDING", "label": "Pending", "count": pendingActivities.length},
@@ -541,7 +542,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
     );
   }
 
-  Widget _buildReturnsList(_AppColors colors) {
+  Widget _buildReturnsList(AppColors colors) {
     bool isDark = colors.text == Colors.white;
 
     List<dynamic> listToShow = [];
@@ -646,7 +647,7 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
   void _openSortSheet() {
     final theme = Theme.of(context);
     final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final colors = AppColors.fromTheme(isDark);
     showModalBottomSheet(
       context: context,
       backgroundColor: colors.card,
@@ -729,12 +730,11 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness != Brightness.dark;
-    final scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final colors = _AppColors(isDark);
+    final colors = AppColors.fromTheme(isDark);
 
     if (isLoading) {
       return Scaffold(
-        backgroundColor: scaffoldBg,
+        backgroundColor: colors.card,
         body: const Center(
           child: CircularProgressIndicator(color: Colors.green),
         ),
@@ -742,10 +742,10 @@ class _TractorReturnsScreenState extends State<TractorReturnsScreen> with Automa
     }
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: colors.card,
       body: SafeArea(
         child: RefreshIndicator(
-          color: scaffoldBg,
+          color: colors.card,
           strokeWidth: 2.5,
           onRefresh: () async {
             _loadReturnsData();
@@ -1093,17 +1093,4 @@ class _ReturnListItem extends StatelessWidget {
   String monthName(int m) {
   const list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   return list[m - 1];
-}
-// -------------------- Theme Colors --------------------
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-  final Color divider;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : Colors.white,
-        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87,
-        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
 }

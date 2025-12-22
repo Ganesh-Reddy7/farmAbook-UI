@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../widgets/frosted_card.dart';
+import '../../theme/app_colors.dart';
 import 'summary_screen.dart';
 import 'lent_screen.dart';
 import 'debt_screen.dart';
@@ -36,17 +37,7 @@ class _LoanManagementScreenState extends State<LoanManagementScreen> with Ticker
   @override
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color secondaryText =
-    isDark ? Colors.grey.shade300 : Colors.grey.shade700;
-    final Color accent =
-    isDark ? Colors.greenAccent.shade200 : Colors.green.shade700;
-    final Color cardGradientStart =
-    isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.03);
-    final Color cardGradientEnd =
-    isDark ? Colors.white.withOpacity(0.02) : Colors.black.withOpacity(0.01);
-    final Color cardBorder =
-    isDark ? Colors.white.withOpacity(0.12) : Colors.black.withOpacity(0.08);
+    final colors = AppColors.fromTheme(isDark);
 
     final cardData = cardValues.entries.map((e) {
       Color color;
@@ -71,13 +62,13 @@ class _LoanManagementScreenState extends State<LoanManagementScreen> with Ticker
 
     return SafeArea(
       child: Container(
-        color: scaffoldBg,
-        padding: const EdgeInsets.only(top: 8),
+        color: colors.card,
+        // padding: const EdgeInsets.only(top: 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-              height: 70, // reduced height
+              height: 70,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -91,10 +82,10 @@ class _LoanManagementScreenState extends State<LoanManagementScreen> with Ticker
                       title: item['title'] as String,
                       value: item['value'] as String,
                       primaryText: item['color'] as Color,
-                      secondaryText: secondaryText,
-                      gradientStart: cardGradientStart,
-                      gradientEnd: cardGradientEnd,
-                      borderColor: cardBorder,
+                      secondaryText: colors.secondaryText,
+                      gradientStart: colors.cardGradientStart,
+                      gradientEnd: colors.cardGradientEnd,
+                      borderColor: colors.border,
                       leadingIcon: item['icon'] as IconData,
                     ),
                   );
@@ -103,10 +94,10 @@ class _LoanManagementScreenState extends State<LoanManagementScreen> with Ticker
             ),
             TabBar(
               controller: _tabController,
-              labelColor: accent,
+              labelColor: colors.accent,
               isScrollable: true,
-              unselectedLabelColor: secondaryText,
-              indicatorColor: accent,
+              unselectedLabelColor: colors.secondaryText,
+              indicatorColor: colors.accent,
               tabAlignment: TabAlignment.start,
               tabs: const [
                 Tab(text: "Summary"),

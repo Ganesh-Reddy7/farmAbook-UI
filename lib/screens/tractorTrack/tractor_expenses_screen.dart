@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../models/expense.dart';
 import '../../services/TractorService/tractor_service.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/formatIndianNumber.dart';
 import '../../utils/slide_route.dart';
 import '../../widgets/no_data_widget.dart';
@@ -120,8 +121,7 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
           return s.isEmpty ? s : s[0].toUpperCase() + s.substring(1).toLowerCase();
         }).toList();
 
-        monthlyChartValues =
-            months.map<double>((m) => (m["total"] as num).toDouble()).toList();
+        monthlyChartValues = months.map<double>((m) => (m["total"] as num).toDouble()).toList();
       }
     } catch (e) {
       debugPrint("Error loading monthly chart: $e");
@@ -129,9 +129,8 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
   }
 
   void _openFilterSheet() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     final Color accentColor = Colors.green.shade700;
 
     String tmpFilter = selectedFilter;
@@ -405,7 +404,7 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
   Widget _buildSelectorField({
     required String label,
     required String value,
-    required _AppColors colors,
+    required AppColors colors,
     required Color accentColor,
   }) {
     return Column(
@@ -467,14 +466,12 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark;
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final colors = _AppColors(isDark);
-
+    final colors = AppColors.fromTheme(isDark);
     if (isLoading) {
       return Scaffold(
-        backgroundColor: scaffoldBg,
+        backgroundColor: colors.card,
         body: const Center(
           child: CircularProgressIndicator(color: Colors.green),
         ),
@@ -482,10 +479,10 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
     }
 
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: colors.card,
       body: SafeArea(
         child: RefreshIndicator(
-          color: scaffoldBg,
+          color: colors.card,
           strokeWidth: 2.5,
           onRefresh: () async {
             _initMethods();
@@ -603,9 +600,8 @@ class _TractorExpensesScreenState extends State<TractorExpensesScreen> with Auto
                 FutureBuilder<List<Expense>>(
                   future: expensesFuture,
                   builder: (context, snapshot) {
-                    final theme = Theme.of(context);
-                    final isDark = theme.brightness != Brightness.dark;
-                    final colors = _AppColors(isDark);
+                    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+                    final colors = AppColors.fromTheme(isDark);
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Padding(
                         padding: EdgeInsets.symmetric(vertical: 20),
@@ -942,21 +938,6 @@ class _ExpenseListItem extends StatelessWidget {
     );
   }
 }
-
-// -------------------- Theme Colors --------------------
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-  final Color divider;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : Colors.white,
-        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87,
-        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
-}
-
 // -------------------- Helpers --------------------
 String monthName(int m) {
   const list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];

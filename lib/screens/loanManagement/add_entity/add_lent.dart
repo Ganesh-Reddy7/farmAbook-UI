@@ -41,10 +41,7 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness != Brightness.dark;
     final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final Color accent = widget.isGiven
-        ? (isDark ? Colors.greenAccent.shade200 : Colors.green.shade700)
-        : (isDark ? Colors.redAccent.shade200 : Colors.red.shade700);
-
+    final Color accent = widget.isGiven ? (isDark ? Colors.greenAccent.shade200 : Colors.green.shade700) : (isDark ? Colors.redAccent.shade200 : Colors.red.shade700);
     final String title = widget.isGiven ? "Add Lent Loan" : "Add Debt";
 
     return Scaffold(
@@ -64,10 +61,7 @@ class _AddLoanScreenState extends State<AddLoanScreen> {
       ),
       body: LayoutBuilder(
         builder: (context, constraints) {
-          double formWidth = constraints.maxWidth < 600
-              ? constraints.maxWidth
-              : 600; // max width for larger screens
-
+          double formWidth = constraints.maxWidth < 600 ? constraints.maxWidth : 600;
           return Center(
             child: SizedBox(
               width: formWidth,

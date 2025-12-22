@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../models/Tractor.dart';
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../theme/app_colors.dart';
 
 class AddReturnPage extends StatefulWidget {
   final int? clientId;
@@ -37,8 +38,6 @@ class _AddReturnPageState extends State<AddReturnPage> {
   void initState() {
     super.initState();
     _loadTractors();
-
-    // If clientName was passed, prefill the name controller (but we will hide the field)
     if (widget.clientName != null) {
       _nameController.text = widget.clientName!;
     }
@@ -64,7 +63,6 @@ class _AddReturnPageState extends State<AddReturnPage> {
       });
     } catch (e) {
       debugPrint("Error loading tractors: $e");
-      // optional: show snackbar
     }
   }
 
@@ -106,10 +104,8 @@ class _AddReturnPageState extends State<AddReturnPage> {
   Future<void> _saveReturn() async {
     if (_isSubmitting) return;
 
-    // Validate form fields
     if (!_formKey.currentState!.validate()) return;
 
-    // Additional validation for times
     if (_startTime == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select start time')),
@@ -149,13 +145,10 @@ class _AddReturnPageState extends State<AddReturnPage> {
       // farmerId will be appended by service (if your service does so)
     };
 
-    debugPrint("📤 Add Return Payload: $payload");
-
     setState(() => _isSubmitting = true);
 
     try {
       final response = await tractorService.addReturn(payload);
-      debugPrint("📥 Add Return Response: ${response.statusCode} ${response.body}");
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -166,10 +159,8 @@ class _AddReturnPageState extends State<AddReturnPage> {
           ),
         );
 
-        // Return payload to previous screen (caller can refresh list)
         Navigator.pop(context, payload);
       } else {
-        // Show server error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Failed to add return: ${response.body}"),
@@ -192,8 +183,8 @@ class _AddReturnPageState extends State<AddReturnPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -386,7 +377,7 @@ class _AddReturnPageState extends State<AddReturnPage> {
 
   Widget _dropdownLikeField({
     required String value,
-    required _AppColors colors,
+    required AppColors colors,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -432,7 +423,7 @@ class _AddReturnPageState extends State<AddReturnPage> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    required _AppColors colors,
+    required AppColors colors,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
   }) {
@@ -533,15 +524,4 @@ Future<T?> showBottomSheetSelector<T>({
       );
     },
   );
-}
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-
-  _AppColors(bool isDark)
-      : background =
-  isDark ? const Color(0xFF081712) : const Color(0xFFFDFDFD),
-        card = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3),
-        text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

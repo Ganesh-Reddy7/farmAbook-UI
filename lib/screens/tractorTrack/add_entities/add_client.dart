@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../theme/app_colors.dart';
 
 class AddClientPage extends StatefulWidget {
   const AddClientPage({Key? key}) : super(key: key);
@@ -74,13 +75,10 @@ class _AddClientPageState extends State<AddClientPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
-
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
@@ -209,7 +207,7 @@ class _AddClientPageState extends State<AddClientPage> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    required _AppColors colors,
+    required AppColors colors,
     String? Function(String?)? validator,
     TextInputType? keyboardType,
   }) {
@@ -222,7 +220,7 @@ class _AddClientPageState extends State<AddClientPage> {
     );
   }
 
-  InputDecoration _inputDecoration(String hint, _AppColors colors) {
+  InputDecoration _inputDecoration(String hint, AppColors colors) {
     return InputDecoration(
       hintText: hint,
       hintStyle: TextStyle(color: colors.text.withOpacity(0.5)),
@@ -240,16 +238,4 @@ class _AddClientPageState extends State<AddClientPage> {
       ),
     );
   }
-}
-
-// -------------------- Theme Helper --------------------
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-
-  _AppColors(bool isDark)
-      : background = isDark ?  const Color(0xFF081712) : const Color(0xFFFDFDFD),
-        card = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3),
-        text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

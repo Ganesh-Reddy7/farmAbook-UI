@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../services/TractorService/tractor_service.dart';
+import '../../../theme/app_colors.dart';
 import '../../../utils/slide_route.dart';
 import '../../../widgets/no_data_widget.dart';
 import '../add_entities/add_close_payment.dart';
@@ -74,10 +75,8 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
     }
   }
 
-  /// ------------------ CALL CLIENT BUTTON ------------------
   Future<void> _callClient() async {
     final Uri uri = Uri(scheme: 'tel', path: widget.phone);
-
     try {
       final launched = await launchUrl(
         uri,
@@ -115,7 +114,6 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
     }
   }
 
-  /// WHATSAPP CHAT
   Future<void> _openWhatsApp() async {
     final phone = widget.phone;
     final message = Uri.encodeComponent("Hello ${widget.clientName},");
@@ -145,8 +143,8 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness != Brightness.dark;
-    final colors = _AppColors(isDark);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -191,14 +189,10 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildInfoCard("Total",
-                    "₹${totalEarned.toStringAsFixed(0)}", Colors.orange.shade700, colors),
-                _buildInfoCard("Earned",
-                    "₹${totalReceived.toStringAsFixed(0)}", Colors.green.shade700, colors),
-                _buildInfoCard("Balance",
-                    "₹${totalBalance.toStringAsFixed(0)}", Colors.red.shade700, colors),
-                _buildInfoCard("Acres",
-                    "${totalAcres.toStringAsFixed(1)}", Colors.blue.shade700, colors),
+                _buildInfoCard("Total", "₹${totalEarned.toStringAsFixed(0)}", Colors.orange.shade700, colors),
+                _buildInfoCard("Earned", "₹${totalReceived.toStringAsFixed(0)}", Colors.green.shade700, colors),
+                _buildInfoCard("Balance", "₹${totalBalance.toStringAsFixed(0)}", Colors.red.shade700, colors),
+                _buildInfoCard("Acres", "${totalAcres.toStringAsFixed(1)}", Colors.blue.shade700, colors),
               ],
             ),
           ),
@@ -288,7 +282,6 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
             ),
           ],
 
-          // --- MAIN EXPAND/COLLAPSE BUTTON ---
           FloatingActionButton(
             heroTag: "expandBtn",
             backgroundColor: Colors.green.shade900,
@@ -302,7 +295,6 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
           ),
           const SizedBox(height: 12),
 
-          // --- ADD RETURN BUTTON ---
           FloatingActionButton(
             heroTag: "addBtn",
             backgroundColor: Colors.green,
@@ -325,7 +317,7 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
   }
 
   // -------------------- Payment List --------------------
-  Widget _buildPaymentList(List<Map<String, dynamic>> list, _AppColors colors , bool isDark) {
+  Widget _buildPaymentList(List<Map<String, dynamic>> list, AppColors colors , bool isDark) {
     if (list.isEmpty) {
       return NoDataWidget(
         message: "No Records found",
@@ -383,7 +375,6 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
 
                 const SizedBox(width: 12),
 
-                // Title / Date / Acres
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -408,7 +399,6 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
                   ),
                 ),
 
-                // Amount + Status
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -439,8 +429,7 @@ class _ClientDetailsPageState extends State<ClientDetailsPage>
     );
   }
   // -------------------- Info Card --------------------
-  Widget _buildInfoCard(
-      String title, String value, Color color, _AppColors colors) {
+  Widget _buildInfoCard(String title, String value, Color color, AppColors colors) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -500,17 +489,4 @@ Map<String, dynamic> _getStatusIcon(String status) {
         "bg": Colors.grey.withOpacity(0.15),
       };
   }
-}
-
-
-// -------------------- Colors --------------------
-class _AppColors {
-  final Color background;
-  final Color card;
-  final Color text;
-
-  _AppColors(bool isDark)
-      : background = isDark ? const Color(0xFF081712) : Colors.white,
-        card = isDark ? const Color(0xFF1E1E1E) : const Color(0xFFF3F3F3),
-        text = isDark ? Colors.white : const Color(0xFF1A1A1A);
 }

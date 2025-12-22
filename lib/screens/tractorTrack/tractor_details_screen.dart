@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_colors.dart';
 import '../../utils/slide_route.dart';
 import '../../widgets/NegativeBarChart.dart';
 import '../../widgets/barChart.dart';
@@ -66,23 +67,19 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> with Automa
 
   @override
   Widget build(BuildContext context) {
-    super.build(context); // required because of AutomaticKeepAliveClientMixin
-
-    final isDark = Theme.of(context).brightness != Brightness.dark;
-    final Color scaffoldBg = isDark ? const Color(0xFF081712) : Colors.white;
-    final colors = _AppColorsMain(isDark);
-
+    super.build(context);
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
     if (isLoading) {
       return Scaffold(
-        backgroundColor: scaffoldBg,
+        backgroundColor: colors.card,
         body: const Center(
           child: CircularProgressIndicator(color: Colors.green),
         ),
       );
     }
-
     return Scaffold(
-      backgroundColor: scaffoldBg,
+      backgroundColor: colors.card,
       body: SafeArea(
         child: RefreshIndicator(
           color: Colors.green,
@@ -139,7 +136,7 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> with Automa
                     const SizedBox(height: 24),
                     _TractorListSection(
                       tractors: tractors,
-                      colors: _AppColors(isDark),
+                      colors: AppColors.fromTheme(isDark),
                     ),
                   ]),
                 ),
@@ -169,7 +166,7 @@ class _TractorDetailsScreenState extends State<TractorDetailsScreen> with Automa
 
 class _TractorListSection extends StatelessWidget {
   final List<Map<String, dynamic>> tractors;
-  final _AppColors colors;
+  final AppColors colors;
 
   const _TractorListSection({required this.tractors, required this.colors});
 
@@ -215,7 +212,7 @@ class _TractorListSection extends StatelessWidget {
 
 class _TractorTile extends StatelessWidget {
   final Map<String, dynamic> tractor;
-  final _AppColors colors;
+  final AppColors colors;
   final VoidCallback onTap;
 
   const _TractorTile({
@@ -226,9 +223,10 @@ class _TractorTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isProfit =
-        (tractor['totalReturns'] ?? 0) > (tractor['totalExpenses'] ?? 0);
+    final isProfit = (tractor['totalReturns'] ?? 0) > (tractor['totalExpenses'] ?? 0);
     final profitColor = isProfit ? Colors.green : Colors.red;
+    final bool isDark = Theme.of(context).brightness != Brightness.dark;
+    final colors = AppColors.fromTheme(isDark);
 
     return InkWell(
       borderRadius: BorderRadius.circular(16),
@@ -248,7 +246,7 @@ class _TractorTile extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: colors.isDark
+            color: isDark
                 ? Colors.white.withOpacity(0.08)
                 : Colors.black.withOpacity(0.06),
           ),
@@ -311,23 +309,4 @@ class _TractorTile extends StatelessWidget {
     );
   }
 }
-class _AppColors {
-  final Color text;
-  final bool isDark;
 
-  _AppColors(this.isDark)
-      : text = isDark ? Colors.white : Colors.black87;
-}
-
-class _AppColorsMain {
-  final Color background;
-  final Color card;
-  final Color text;
-  final Color divider;
-
-  _AppColorsMain(bool isDark)
-      : background = isDark ? const Color(0xFF121212) : Colors.white,
-        card = isDark ? const Color(0xFF081712) : Colors.grey.shade100,
-        text = isDark ? Colors.white : Colors.black87,
-        divider = isDark ? Colors.grey.shade700 : Colors.grey.shade300;
-}
